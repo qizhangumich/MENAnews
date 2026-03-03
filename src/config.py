@@ -23,7 +23,19 @@ class Config:
     telegram_bot_token: Optional[str] = field(default_factory=lambda: os.getenv("TELEGRAM_BOT_TOKEN"))
     telegram_chat_id: Optional[str] = field(default_factory=lambda: os.getenv("TELEGRAM_CHAT_ID"))
 
-    # Email (Resend)
+    # Email (SMTP - 163.com, Gmail, etc.)
+    smtp_host: Optional[str] = field(default_factory=lambda: os.getenv("SMTP_HOST"))
+    smtp_port: int = field(default_factory=lambda: int(os.getenv("SMTP_PORT", "465")))
+    smtp_user: Optional[str] = field(default_factory=lambda: os.getenv("SMTP_USER"))
+    smtp_password: Optional[str] = field(default_factory=lambda: os.getenv("SMTP_PASSWORD"))
+    smtp_use_ssl: bool = field(default_factory=lambda: os.getenv("SMTP_USE_SSL", "1") == "1")
+    smtp_use_tls: bool = field(default_factory=lambda: os.getenv("SMTP_USE_TLS", "0") == "1")
+    email_recipients: List[str] = field(default_factory=lambda: (
+        [email.strip() for email in os.getenv("EMAIL_RECIPIENTS", "").split(",") if email.strip()]
+        if os.getenv("EMAIL_RECIPIENTS") else []
+    ))
+
+    # Email (Resend - optional alternative)
     resend_api_key: Optional[str] = field(default_factory=lambda: os.getenv("RESEND_API_KEY"))
     email_from: Optional[str] = field(default_factory=lambda: os.getenv("EMAIL_FROM"))
     email_to: List[str] = field(default_factory=lambda: (
@@ -78,14 +90,22 @@ class Config:
         """Validate email configuration for weekly digest."""
         errors = []
 
+        # Check for SMTP configuration (preferred)
+        if self.smtp_host and self.smtp_user and self.smtp_password:
+            # SMTP is configured
+            if not self.email_recipients:
+                errors.append("EMAIL_RECIPIENTS is required for weekly email digest.")
+            return
+
+        # Fallback to Resend API
         if not self.resend_api_key:
-            errors.append("RESEND_API_KEY is required for weekly email digest.")
+            errors.append("Either SMTP configuration (SMTP_HOST, SMTP_USER, SMTP_PASSWORD) or RESEND_API_KEY is required for weekly email digest.")
 
         if not self.email_from:
-            errors.append("EMAIL_FROM is required for weekly email digest.")
+            errors.append("EMAIL_FROM is required for weekly email digest (when using Resend).")
 
         if not self.email_to:
-            errors.append("EMAIL_TO is required for weekly email digest.")
+            errors.append("EMAIL_TO is required for weekly email digest (when using Resend).")
 
         if errors:
             raise ValueError("Email configuration errors:\n" + "\n".join(f"  - {e}" for e in errors))

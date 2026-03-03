@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """
-Email client module for sending weekly digest via Resend.
+Email client module for sending weekly digest via SMTP.
 
-Handles email composition and sending via Resend API.
+Handles email composition and sending via SMTP (supports 163.com, Gmail, etc.).
 """
 
 import logging
-import requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
+import socket
 
 from .config import get_config
 from .topic_cluster import Topic
@@ -16,32 +19,50 @@ from .topic_cluster import Topic
 logger = logging.getLogger(__name__)
 
 
-# Resend API base URL
-RESEND_API_URL = "https://api.resend.com/emails"
-
-
 class EmailClient:
-    """Client for sending emails via Resend API."""
+    """Client for sending emails via SMTP."""
 
-    def __init__(self, api_key: Optional[str] = None):
-        """Initialize Resend email client.
+    def __init__(self, smtp_config: Optional[dict] = None):
+        """Initialize SMTP email client.
 
         Args:
-            api_key: Resend API key (defaults to config).
+            smtp_config: SMTP configuration dict (defaults to environment variables).
         """
         config = get_config()
-        self.api_key = api_key or config.resend_api_key
-        self.from_email = config.email_from
-        self.to_emails = config.email_to
 
-        if not self.api_key:
-            raise ValueError("RESEND_API_KEY is required for weekly digest")
+        # Get SMTP config from parameter or environment
+        if smtp_config:
+            self.smtp_host = smtp_config.get("SMTP_HOST")
+            self.smtp_port = int(smtp_config.get("SMTP_PORT", 465))
+            self.smtp_user = smtp_config.get("SMTP_USER")
+            self.smtp_password = smtp_config.get("SMTP_PASSWORD")
+            self.smtp_use_ssl = smtp_config.get("SMTP_USE_SSL", "1") == "1"
+            self.smtp_use_tls = smtp_config.get("SMTP_USE_TLS", "0") == "1"
+            self.from_email = smtp_config.get("SMTP_USER")  # Use SMTP username as from
+            self.to_emails = smtp_config.get("EMAIL_RECIPIENTS", "").split(",")
+        else:
+            # Try environment variables
+            self.smtp_host = os.getenv("SMTP_HOST")
+            self.smtp_port = int(os.getenv("SMTP_PORT", 465))
+            self.smtp_user = os.getenv("SMTP_USER")
+            self.smtp_password = os.getenv("SMTP_PASSWORD")
+            self.smtp_use_ssl = os.getenv("SMTP_USE_SSL", "1") == "1"
+            self.smtp_use_tls = os.getenv("SMTP_USE_TLS", "0") == "1"
+            self.from_email = os.getenv("SMTP_USER", os.getenv("EMAIL_FROM"))
+            self.to_emails = [e.strip() for e in os.getenv("EMAIL_RECIPIENTS", "").split(",") if e.strip()]
 
-        if not self.from_email:
-            raise ValueError("EMAIL_FROM is required for weekly digest")
+        # Validate required fields
+        if not self.smtp_host:
+            raise ValueError("SMTP_HOST is required for weekly digest")
+
+        if not self.smtp_user:
+            raise ValueError("SMTP_USER is required for weekly digest")
+
+        if not self.smtp_password:
+            raise ValueError("SMTP_PASSWORD is required for weekly digest")
 
         if not self.to_emails:
-            raise ValueError("EMAIL_TO is required for weekly digest")
+            raise ValueError("EMAIL_RECIPIENTS is required for weekly digest")
 
     def send_email(
         self,
@@ -49,7 +70,7 @@ class EmailClient:
         html_content: str,
         text_content: Optional[str] = None
     ) -> bool:
-        """Send an email via Resend API.
+        """Send an email via SMTP.
 
         Args:
             subject: Email subject.
@@ -59,33 +80,58 @@ class EmailClient:
         Returns:
             True if successful.
         """
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-
-        data = {
-            "from": self.from_email,
-            "to": self.to_emails,
-            "subject": subject,
-            "html": html_content,
-        }
-
-        if text_content:
-            data["text"] = text_content
-
         try:
-            response = requests.post(RESEND_API_URL, headers=headers, json=data, timeout=30)
-            response.raise_for_status()
-            result = response.json()
-            logger.info(f"Email sent successfully: {result.get('id')}")
+            # Create message
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = self.from_email
+            msg["To"] = ", ".join(self.to_emails)
+
+            # Add plain text version
+            if text_content:
+                msg.attach(MIMEText(text_content, "plain", "utf-8"))
+
+            # Add HTML version
+            msg.attach(MIMEText(html_content, "html", "utf-8"))
+
+            # Connect to SMTP server
+            if self.smtp_use_ssl:
+                # SSL connection (port 465 typically)
+                server = smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, timeout=30)
+            else:
+                # TLS connection (port 587 or 25 typically)
+                server = smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=30)
+                if self.smtp_use_tls:
+                    server.starttls()
+
+            # Login
+            server.login(self.smtp_user, self.smtp_password)
+
+            # Send email
+            server.sendmail(self.from_email, self.to_emails, msg.as_string())
+
+            # Quit
+            server.quit()
+
+            logger.info(f"Email sent successfully to {len(self.to_emails)} recipients")
             return True
 
-        except requests.RequestException as e:
-            logger.error(f"Failed to send email: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+        except socket.gaierror as e:
+            logger.error(f"SMTP connection error (DNS/Network): {e}")
             return False
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"SMTP authentication error: {e}")
+            logger.error("Check your SMTP username and password")
+            return False
+        except smtplib.SMTPException as e:
+            logger.error(f"SMTP error: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to send email: {e}")
+            return False
+
+
+import os
 
 
 def format_weekly_digest_html(topics: List[Topic], digest_date: datetime) -> str:
