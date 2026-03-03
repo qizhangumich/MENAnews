@@ -1,0 +1,13 @@
+# Sovereign News Collector - Python Dependencies
+
+# RSS feed parsing
+feedparser>=6.0.10
+
+# Google Cloud Firestore
+google-cloud-firestore>=2.16.0
+
+# Scheduling (optional, for scheduler.py)
+schedule>=1.2.0
+
+# HTTP requests for Telegram notifications
+requests>=2.31.0
