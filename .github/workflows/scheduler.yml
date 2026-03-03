@@ -2,12 +2,56 @@ name: MENA News Scheduler
 
 on:
   schedule:
-    # Run every 12 hours at 00:00 and 12:00 UTC
+    # News collection - every 12 hours
     - cron: '0 */12 * * *'
+    # Daily digest - at 00:30 UTC (08:30 GMT+8)
+    - cron: '30 0 * * *'
+    # Weekly digest - Friday at 00:30 UTC (08:30 GMT+8)
+    - cron: '30 0 * * 5'
   workflow_dispatch:  # Allow manual trigger from GitHub UI
 
 jobs:
+  # Determine which job to run based on schedule
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      run-collection: ${{ steps.check.outputs.run-collection }}
+      run-daily: ${{ steps.check.outputs.run-daily }}
+      run-weekly: ${{ steps.check.outputs.run-weekly }}
+    steps:
+      - name: Determine run type
+        id: check
+        run: |
+          # Check current day and hour
+          DAY=$(date +%u)  # 1=Monday, 5=Friday
+          HOUR=$(date +%H)
+          MINUTE=$(date +%M)
+
+          # Collection: every 12 hours (00:00, 12:00 UTC)
+          if [ "$HOUR" = "00" ] || [ "$HOUR" = "12" ]; then
+            echo "run-collection=true" >> $GITHUB_OUTPUT
+          fi
+
+          # Daily digest: 00:30 UTC every day
+          if [ "$HOUR" = "00" ] && [ "$MINUTE" = "30" ]; then
+            echo "run-daily=true" >> $GITHUB_OUTPUT
+          fi
+
+          # Weekly digest: Friday 00:30 UTC
+          if [ "$DAY" = "5" ] && [ "$HOUR" = "00" ] && [ "$MINUTE" = "30" ]; then
+            echo "run-weekly=true" >> $GITHUB_OUTPUT
+          fi
+
+          # For manual dispatch, run all
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run-collection=true" >> $GITHUB_OUTPUT
+            echo "run-daily=true" >> $GITHUB_OUTPUT
+            echo "run-weekly=true" >> $GITHUB_OUTPUT
+          fi
+
   collect-news:
+    needs: setup
+    if: needs.setup.outputs.run-collection == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -44,3 +88,92 @@ jobs:
         with:
           name: collector-log
           path: collector.log
+
+  daily-digest:
+    needs: setup
+    if: needs.setup.outputs.run-daily == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup Firebase credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase_service_account.json
+          export GOOGLE_APPLICATION_CREDENTIALS=firebase_service_account.json
+
+      - name: Run daily digest
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIRESTORE_COLLECTION: ${{ secrets.FIRESTORE_COLLECTION }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -m src.main daily
+
+      - name: Upload log as artifact (if failed)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-digest-log
+          path: ranking_service.log
+
+  weekly-digest:
+    needs: setup
+    if: needs.setup.outputs.run-weekly == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup Firebase credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase_service_account.json
+          export GOOGLE_APPLICATION_CREDENTIALS=firebase_service_account.json
+
+      - name: Run weekly digest
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIRESTORE_COLLECTION: ${{ secrets.FIRESTORE_COLLECTION }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: |
+          python -m src.main weekly
+
+      - name: Upload log as artifact (if failed)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-digest-log
+          path: ranking_service.log

@@ -1,4 +1,4 @@
-# Sovereign News Collector - Python Dependencies
+# MENA News Collector & Ranking Service - Python Dependencies
 
 # RSS feed parsing
 feedparser>=6.0.10
@@ -6,8 +6,11 @@ feedparser>=6.0.10
 # Google Cloud Firestore
 google-cloud-firestore>=2.16.0
 
-# Scheduling (optional, for scheduler.py)
+# Scheduling (for scheduler.py)
 schedule>=1.2.0
 
-# HTTP requests for Telegram notifications
+# HTTP requests
 requests>=2.31.0
+
+# OpenAI (optional - for enhanced summaries)
+# openai>=1.0.0
