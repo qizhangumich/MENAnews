@@ -5,8 +5,8 @@ A bilingual news ranking service for Middle East investment and sovereign wealth
 ## Overview
 
 This service provides:
-- **Daily Telegram Digest**: Top 10 news from past 24 hours (GMT+8 08:30)
-- **Weekly Email Digest**: Top 60 news with bilingual (Chinese/English) summaries (every Friday)
+- **Daily Telegram Digest**: Top 10 news from past 24 hours (GMT+8 08:00)
+- **Weekly Email Digest**: Top 60 news with bilingual (Chinese/English) summaries (every Friday 08:00)
 
 ---
 
@@ -232,13 +232,23 @@ python -m src.main weekly
 
 For automated execution, configure these secrets in your GitHub repo:
 
+**Schedule (Beijing Time GMT+8):**
+- News Collection: Every 6 hours (08:00, 14:00, 20:00, 02:00)
+- Daily Digest: Every day at 08:00
+- Weekly Digest: Every Friday at 08:00
+
+**Required Secrets:**
+
 | Secret | Description |
 |--------|-------------|
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Full Firebase credentials JSON |
+| `FIREBASE_PROJECT_ID` | Firebase project ID (e.g., `menanews-4a30c`) |
+| `FIRESTORE_COLLECTION` | Firestore collection name (e.g., `news`) |
 | `TELEGRAM_BOT_TOKEN` | Your bot token from @BotFather |
 | `TELEGRAM_CHAT_ID` | Your chat ID |
 | `OPENAI_API_KEY` | OpenAI API key for summaries |
 | `SMTP_HOST` | SMTP server (e.g., smtp.163.com) |
+| `SMTP_PORT` | SMTP port (e.g., 465) |
 | `SMTP_USER` | SMTP username |
 | `SMTP_PASSWORD` | SMTP password |
 | `EMAIL_RECIPIENTS` | Comma-separated email addresses |
