@@ -12,8 +12,8 @@ A complete news collection and ranking system for Middle East economic and sover
 - Runs periodically (every 1 hour by default)
 
 ### News Ranking Service (src/)
-- **Daily Telegram Digest**: Top 10 news from past 24 hours, sent at GMT+8 08:30
-- **Weekly Email Digest**: Top 60 articles with bilingual (Chinese/English) summaries via OpenAI API, sent every Friday at GMT+8 08:30
+- **Daily Telegram Digest**: Top 10 news from past 24 hours, sent at GMT+8 08:00
+- **Weekly Email Digest**: Top 60 articles with bilingual (Chinese/English) summaries via OpenAI API, sent every Friday at GMT+8 08:00
 - Relevance scoring based on SWF entities, investment keywords, and deal terms
 - Importance scoring based on source credibility, event type, and freshness
 - SMTP email delivery (163.com) with bilingual HTML templates
