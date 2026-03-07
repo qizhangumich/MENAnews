@@ -171,11 +171,11 @@ class TelegramClient:
         return chunks
 
 
-def format_daily_digest(articles: list, digest_date: datetime) -> str:
-    """Format daily digest for Telegram.
+def format_daily_digest(summaries: list, digest_date: datetime) -> str:
+    """Format daily digest for Telegram with bilingual summaries.
 
     Args:
-        articles: List of NewsArticle objects.
+        summaries: List of ArticleSummary objects with bilingual content.
         digest_date: Date for the digest.
 
     Returns:
@@ -187,74 +187,47 @@ def format_daily_digest(articles: list, digest_date: datetime) -> str:
 
     # Header
     lines = [
-        f"📰 <b>中东投资情报｜过去24小时Top{len(articles)}</b>",
+        f"📰 <b>MENA Investment Daily｜过去24小时Top{len(summaries)}</b>",
         f"📅 {date_str}",
         "",
     ]
 
-    # Articles
-    for i, article in enumerate(articles, 1):
+    # Articles with bilingual summaries
+    for i, summary in enumerate(summaries, 1):
         # Get effective published time
-        effective_time = article.get_effective_published_time()
-        if effective_time:
-            time_str = effective_time.astimezone(tz).strftime("%m-%d %H:%M")
+        published_at = summary.published_at
+        if published_at:
+            time_str = published_at.astimezone(tz).strftime("%m-%d %H:%M")
         else:
             time_str = "未知时间"
 
-        # Translate title (simple - just use original)
-        title = article.title.strip()
-
-        # Generate one-sentence summary
-        summary = _generate_summary(article)
-
-        # Tags
-        tags = article.tags or []
-        tag_str = " | ".join(tags[:3]) if tags else "新闻"
+        # Full title (no truncation)
+        title_en = summary.title_en.strip()
+        title_cn = summary.title_cn.strip()
 
         # URL
-        url = article.url or "无链接"
+        url = summary.url if summary.url != "#" else "无链接"
 
         lines.extend([
-            f"<b>{i}) {title[:50]}...</b>" if len(title) > 50 else f"<b>{i}) {title}</b>",
-            f"📌 要点：{summary}",
-            f"🏷️ 标签：{tag_str}",
-            f"📰 来源：{article.source}｜时间：{time_str}",
-            f"🔗 链接：{url}",
+            f"<b>{i}. {title_en}</b>",
+            f"<b>{title_cn}</b>",
+            "",
+            f"📌 <b>Key Message (CN):</b> {summary.summary_cn}",
+            f"📌 <b>Key Message (EN):</b> {summary.summary_en}",
+            "",
+            f"🏷️ {summary.tags} | 📰 {summary.source} | 🕒 {time_str}",
+            f"🔗 {url}",
             "",
         ])
 
     return "\n".join(lines)
 
 
-def _generate_summary(article) -> str:
-    """Generate one-sentence summary from article.
+def send_daily_digest(summaries: list, digest_date: datetime) -> bool:
+    """Send daily digest to Telegram with bilingual summaries.
 
     Args:
-        article: NewsArticle object.
-
-    Returns:
-        Summary sentence.
-    """
-    # Combine title and description
-    text = f"{article.title} {article.description}"
-
-    # Remove HTML tags
-    import re
-    text = re.sub(r'<[^>]+>', ' ', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-
-    # Truncate to ~100 characters
-    if len(text) > 100:
-        text = text[:97] + "..."
-
-    return text
-
-
-def send_daily_digest(articles: list, digest_date: datetime) -> bool:
-    """Send daily digest to Telegram.
-
-    Args:
-        articles: List of NewsArticle objects.
+        summaries: List of ArticleSummary objects with bilingual content.
         digest_date: Date for the digest.
 
     Returns:
@@ -262,9 +235,9 @@ def send_daily_digest(articles: list, digest_date: datetime) -> bool:
     """
     try:
         client = TelegramClient()
-        message = format_daily_digest(articles, digest_date)
+        message = format_daily_digest(summaries, digest_date)
         client.send_message(message)
-        logger.info(f"Daily digest sent with {len(articles)} articles")
+        logger.info(f"Daily digest sent with {len(summaries)} articles")
         return True
 
     except Exception as e:

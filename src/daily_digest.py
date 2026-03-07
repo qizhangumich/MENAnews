@@ -13,6 +13,7 @@ from .firestore_client import FirestoreClient, NewsArticle
 from .extract import extract_first_article_url, html_to_text
 from .scoring import score_articles, filter_and_rank_daily, deduplicate_articles
 from .telegram_client import send_daily_digest
+from .summarizer import OpenAISummarizer
 
 logger = logging.getLogger(__name__)
 
@@ -93,10 +94,16 @@ def run_daily_digest() -> dict:
             updated_count += 1
     logger.info(f"Updated {updated_count} articles in Firestore")
 
+    # Generate bilingual summaries using OpenAI
+    logger.info("Generating bilingual summaries for daily digest...")
+    summarizer = OpenAISummarizer()
+    summaries = summarizer.summarize_articles_batch(top_articles)
+    logger.info(f"Generated {len(summaries)} summaries")
+
     # Send daily digest
     logger.info("Sending daily digest to Telegram...")
     digest_date = datetime.now(timezone.utc)
-    telegram_success = send_daily_digest(top_articles, digest_date)
+    telegram_success = send_daily_digest(summaries, digest_date)
 
     result = {
         "success": telegram_success,
