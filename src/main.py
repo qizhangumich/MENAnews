@@ -8,7 +8,19 @@ CLI interface for running daily and weekly digests.
 import argparse
 import logging
 import sys
+import os
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+# Load .env file if it exists
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).parent.parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+        logging.info(f"Loaded .env from {env_path}")
+except ImportError:
+    pass
 
 # Configure logging
 logging.basicConfig(
@@ -87,15 +99,9 @@ def run_weekly() -> int:
         print("WEEKLY DIGEST SUMMARY")
         print("=" * 60)
         print(f"Articles processed: {result.get('articles_processed', 0)}")
-        print(f"Relevant articles: {result.get('relevant_articles', 0)}")
-        print(f"Topics found: {result.get('topics_found', 0)}")
-        print(f"Topics sent: {result.get('topics_sent', 0)}")
+        print(f"Articles selected: {result.get('articles_sent', 0)}")
+        print(f"Summaries generated: {result.get('summaries_generated', 0)}")
         print(f"Email status: {result.get('email_status', 'unknown')}")
-
-        if result.get('top_topics'):
-            print("\nTop topics:")
-            for i, topic in enumerate(result.get('top_topics', []), 1):
-                print(f"  {i}. [{topic['score']:.1f}] {topic['title'][:60]}... ({topic['articles']} articles)")
 
         print("=" * 60)
 
@@ -130,7 +136,7 @@ def run_test() -> int:
         print(f"Firebase project: {config.firebase_project_id}")
         print(f"Firestore collection: {config.firestore_collection}")
         print(f"Telegram configured: {bool(config.telegram_bot_token)}")
-        print(f"Email configured: {bool(config.resend_api_key)}")
+        print(f"Email (SMTP) configured: {bool(config.smtp_host and config.smtp_user)}")
         print(f"OpenAI available: {config.has_openai()}")
 
         # Test Firestore connection

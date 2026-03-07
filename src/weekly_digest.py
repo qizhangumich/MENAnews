@@ -2,7 +2,7 @@
 """
 Weekly digest module for processing and sending weekly email digest.
 
-Coordinates fetching, scoring, clustering, and sending weekly news.
+Features top 60 news articles with bilingual (Chinese/English) summaries.
 """
 
 import logging
@@ -12,7 +12,7 @@ from .config import get_config
 from .firestore_client import FirestoreClient, NewsArticle
 from .extract import extract_first_article_url, html_to_text
 from .scoring import score_articles, deduplicate_articles
-from .topic_cluster import cluster_articles_by_topic, get_top_topics
+from .summarizer import OpenAISummarizer
 from .email_client import send_weekly_digest
 
 logger = logging.getLogger(__name__)
@@ -26,9 +26,8 @@ def run_weekly_digest() -> dict:
     """
     config = get_config()
 
-    # Validate config
+    # Validate email config (only email needed for weekly digest)
     try:
-        config.validate()
         config.validate_email()
     except ValueError as e:
         logger.error(f"Configuration error: {e}")
@@ -36,7 +35,7 @@ def run_weekly_digest() -> dict:
             "success": False,
             "error": str(e),
             "articles_processed": 0,
-            "topics_sent": 0,
+            "articles_sent": 0,
         }
 
     logger.info("Starting weekly digest pipeline")
@@ -47,14 +46,14 @@ def run_weekly_digest() -> dict:
 
     # Fetch articles from past 7 days
     logger.info("Fetching articles from Firestore...")
-    articles = db.query_weekly_articles(days_back=7, limit=config.weekly_max_docs)
+    articles = db.query_weekly_articles(days_back=7, limit=2000)
 
     if not articles:
         logger.warning("No articles found in the past 7 days")
         return {
             "success": True,
             "articles_processed": 0,
-            "topics_sent": 0,
+            "articles_sent": 0,
             "message": "No articles found",
         }
 
@@ -77,40 +76,27 @@ def run_weekly_digest() -> dict:
     logger.info("Scoring articles...")
     articles = score_articles(articles)
 
-    # Filter out low-relevance articles for weekly digest
-    # Use a slightly lower threshold for weekly (more inclusive)
-    logger.info("Filtering articles for weekly digest...")
-    relevant_articles = [a for a in articles if (a.relevance_score or 0) >= 15]
+    # Sort by total score and get top 60 (no filtering by relevance)
+    logger.info("Selecting top 60 articles by total score...")
+    top_articles = sorted(articles, key=lambda a: a.total_score or 0, reverse=True)[:60]
 
-    if not relevant_articles:
-        logger.warning("No relevant articles found")
-        return {
-            "success": True,
-            "articles_processed": len(articles),
-            "topics_sent": 0,
-            "message": "No relevant articles found",
-        }
+    logger.info(f"Top {len(top_articles)} articles selected")
 
-    logger.info(f"Found {len(relevant_articles)} relevant articles")
+    # Log top articles preview
+    for i, article in enumerate(top_articles[:5], 1):
+        logger.info(f"{i}. [{article.total_score:.1f}] {article.title[:60]}...")
 
-    # Cluster by topic
-    logger.info("Clustering articles by topic...")
-    topics = cluster_articles_by_topic(relevant_articles)
+    # Generate bilingual summaries using OpenAI
+    logger.info("Generating bilingual summaries...")
+    summarizer = OpenAISummarizer()
+    summaries = summarizer.summarize_articles_batch(top_articles)
 
-    # Get top topics
-    logger.info("Selecting top topics...")
-    top_topics = get_top_topics(topics, n=config.weekly_top_topics)
-
-    logger.info(f"Top {len(top_topics)} topics selected")
-
-    # Log top topics
-    for i, topic in enumerate(top_topics, 1):
-        logger.info(f"{i}. [{topic.total_topic_score:.1f}] {topic.topic_key} ({topic.article_count} articles)")
+    logger.info(f"Generated {len(summaries)} summaries")
 
     # Optionally write back scores to Firestore
     logger.info("Updating Firestore with computed scores...")
     updated_count = 0
-    for article in relevant_articles[:100]:  # Limit updates
+    for article in top_articles[:100]:  # Limit updates
         if db.update_article_scores(article):
             updated_count += 1
     logger.info(f"Updated {updated_count} articles in Firestore")
@@ -118,22 +104,13 @@ def run_weekly_digest() -> dict:
     # Send weekly digest
     logger.info("Sending weekly digest email...")
     digest_date = datetime.now(timezone.utc)
-    email_success = send_weekly_digest(top_topics, digest_date)
+    email_success = send_weekly_digest(summaries, digest_date)
 
     result = {
         "success": email_success,
         "articles_processed": len(articles),
-        "relevant_articles": len(relevant_articles),
-        "topics_found": len(topics),
-        "topics_sent": len(top_topics),
-        "top_topics": [
-            {
-                "title": t.topic_key,
-                "score": t.total_topic_score,
-                "articles": t.article_count,
-            }
-            for t in top_topics
-        ],
+        "articles_sent": len(top_articles),
+        "summaries_generated": len(summaries),
         "email_status": "sent" if email_success else "failed",
     }
 

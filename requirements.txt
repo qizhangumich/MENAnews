@@ -12,5 +12,8 @@ schedule>=1.2.0
 # HTTP requests
 requests>=2.31.0
 
-# OpenAI (optional - for enhanced summaries)
-# openai>=1.0.0
+# Environment variables
+python-dotenv>=1.0.0
+
+# OpenAI (for enhanced summaries)
+openai>=1.0.0

@@ -6,7 +6,9 @@ Handles all Firestore operations for the MENA News Ranking Service.
 """
 
 import logging
+import os
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
@@ -102,8 +104,26 @@ class FirestoreClient:
     def connect(self) -> None:
         """Establish Firestore connection."""
         try:
-            self.client = firestore.Client(project=get_config().firebase_project_id)
-            logger.info(f"Connected to Firestore project: {get_config().firebase_project_id}")
+            config = get_config()
+
+            # Set credentials path if specified
+            if config.google_credentials_path:
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = config.google_credentials_path
+            else:
+                # Try default locations
+                default_paths = [
+                    "firebase_service_account.json",
+                    "config/firebase_service_account.json",
+                    os.path.expanduser("~/.config/firebase_service_account.json"),
+                ]
+                for path in default_paths:
+                    if os.path.exists(path):
+                        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(path)
+                        logger.info(f"Using credentials from: {path}")
+                        break
+
+            self.client = firestore.Client(project=config.firebase_project_id)
+            logger.info(f"Connected to Firestore project: {config.firebase_project_id}")
         except Exception as e:
             logger.error(f"Failed to connect to Firestore: {e}")
             raise
@@ -209,49 +229,7 @@ class FirestoreClient:
 
         logger.info(f"Querying articles from {start_time.isoformat()} to {now.isoformat()}")
 
-        try:
-            collection = self.client.collection(self.collection_name)
-
-            # Query with published_at
-            query = collection.where("published_at", ">=", start_time)
-            docs = list(query.stream())
-
-            # Fallback for missing published_at
-            fallback_query = (
-                collection
-                .where("fetched_at", ">=", start_time)
-                .where("published_at", "==", None)
-            )
-            fallback_docs = list(fallback_query.stream())
-
-            # Combine and deduplicate
-            all_docs = {d.id: d for d in docs + fallback_docs}
-
-            # Convert to NewsArticle objects
-            articles = []
-            for doc_id, doc in all_docs.items():
-                data = doc.to_dict()
-                if data:
-                    article = NewsArticle.from_doc(doc_id, data)
-                    effective_time = article.get_effective_published_time()
-                    if effective_time and effective_time >= start_time:
-                        articles.append(article)
-
-            # Sort by effective time (newest first)
-            articles.sort(
-                key=lambda a: a.get_effective_published_time() or datetime.min,
-                reverse=True
-            )
-
-            # Apply limit
-            articles = articles[:limit]
-
-            logger.info(f"Retrieved {len(articles)} articles from weekly query")
-            return articles
-
-        except Exception as e:
-            logger.error(f"Error querying weekly articles: {e}")
-            return self._fallback_query(start_time, limit)
+        return self._fallback_query(start_time, limit)
 
     def _fallback_query(self, start_time: datetime, limit: int) -> List[NewsArticle]:
         """Fallback query using fetched_at when published_at index doesn't exist."""

@@ -13,10 +13,10 @@ A complete news collection and ranking system for Middle East economic and sover
 
 ### News Ranking Service (src/)
 - **Daily Telegram Digest**: Top 10 news from past 24 hours, sent at GMT+8 08:30
-- **Weekly Email Digest**: Top 10 topics from past 7 days, sent every Friday at GMT+8 08:30
+- **Weekly Email Digest**: Top 60 articles with bilingual (Chinese/English) summaries via OpenAI API, sent every Friday at GMT+8 08:30
 - Relevance scoring based on SWF entities, investment keywords, and deal terms
 - Importance scoring based on source credibility, event type, and freshness
-- Topic clustering without embeddings
+- SMTP email delivery (163.com) with bilingual HTML templates
 
 ---
 
@@ -56,10 +56,12 @@ FIRESTORE_COLLECTION=news
 TELEGRAM_BOT_TOKEN=your_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
 
-# Email (for weekly digest - Resend)
-RESEND_API_KEY=your_resend_api_key
-EMAIL_FROM=noreply@yourdomain.com
-EMAIL_TO=recipient@example.com,another@example.com
+# Email (for weekly digest - SMTP)
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+SMTP_USER=your_email@163.com
+SMTP_PASSWORD=your_password
+EMAIL_RECIPIENTS=recipient@example.com,another@example.com
 
 # Optional: OpenAI for enhanced summaries
 OPENAI_API_KEY=sk-...
@@ -289,7 +291,7 @@ Ensure `firebase_service_account.json` exists and `GOOGLE_APPLICATION_CREDENTIAL
 Check `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are correct.
 
 ### Email Not Sending
-Verify `RESEND_API_KEY`, `EMAIL_FROM`, and `EMAIL_TO` are configured.
+Verify SMTP credentials (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`) are configured.
 
 ### No Articles in Digest
 - Check Firestore has articles with `published_at` in the time window

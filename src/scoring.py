@@ -313,7 +313,7 @@ def filter_and_rank_daily(articles: List[NewsArticle]) -> List[NewsArticle]:
         # Filter out obvious non-business lifestyle content
         remaining = [
             a for a in remaining
-            if not any(kw in f"{a.title} {a.description}".lower() for kw in ["lifestyle", "travel", "fashion", "food"]))
+            if not any(kw in f"{a.title} {a.description}".lower() for kw in ["lifestyle", "travel", "fashion", "food"])
         ]
         remaining.sort(key=lambda a: a.importance_score or 0, reverse=True)
         result.extend(remaining[:top_n - len(result)])
