@@ -108,7 +108,10 @@ class OpenAISummarizer:
             ArticleSummary with Chinese and English content.
         """
         if not self.enabled:
+            logger.warning("OpenAI not enabled, using rule-based fallback")
             return self._rule_based_summary(article)
+
+        logger.info(f"Using OpenAI to translate: '{article.title[:50]}...'")
 
         try:
             import openai
@@ -145,16 +148,27 @@ Return ONLY the JSON, no other text."""
             response = openai.OpenAI(api_key=self.api_key).chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a bilingual business news editor specializing in Middle East markets."},
+                    {"role": "system", "content": "You are a bilingual business news editor specializing in Middle East markets. Always respond with valid JSON only."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
                 max_tokens=1000,
-                response_format={"type": "json_object"}
             )
 
             import json
-            result = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content.strip()
+
+            # Try to extract JSON from response (in case there's extra text)
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
+
+            result = json.loads(content)
+
+            # Validate required fields
+            if not result.get("title_cn"):
+                raise ValueError("Missing title_cn in OpenAI response")
 
             return ArticleSummary(
                 article=article,
@@ -166,7 +180,7 @@ Return ONLY the JSON, no other text."""
             )
 
         except Exception as e:
-            logger.warning(f"OpenAI summarization failed for article '{article.title[:50]}...': {e}")
+            logger.error(f"OpenAI summarization failed for article '{article.title[:50]}...': {type(e).__name__}: {e}")
             return self._rule_based_summary(article)
 
     def summarize_articles_batch(self, articles: list) -> list[ArticleSummary]:
