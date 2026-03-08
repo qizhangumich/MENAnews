@@ -154,58 +154,7 @@ class FirestoreClient:
 
         logger.info(f"Querying articles from {start_time.isoformat()} to {now.isoformat()}")
 
-        try:
-            collection = self.client.collection(self.collection_name)
-
-            # Query for documents published after start time
-            # Note: Firestore indexes may need to be created for published_at
-            query: BaseQuery = collection.where("published_at", ">=", start_time)
-
-            # Also get documents without published_at (fallback to fetched_at)
-            # We'll filter those in memory
-
-            # Get results
-            docs = list(query.stream())
-
-            # Also fetch documents that might not have published_at but have recent fetched_at
-            # This is a fallback for documents missing published_at
-            fallback_query = (
-                collection
-                .where("fetched_at", ">=", start_time)
-                .where("published_at", "==", None)  # Only those without published_at
-            )
-            fallback_docs = list(fallback_query.stream())
-
-            # Combine and deduplicate
-            all_docs = {d.id: d for d in docs + fallback_docs}
-
-            # Convert to NewsArticle objects
-            articles = []
-            for doc_id, doc in all_docs.items():
-                data = doc.to_dict()
-                if data:
-                    article = NewsArticle.from_doc(doc_id, data)
-                    # Filter by effective published time
-                    effective_time = article.get_effective_published_time()
-                    if effective_time and effective_time >= start_time:
-                        articles.append(article)
-
-            # Sort by effective time (newest first)
-            articles.sort(
-                key=lambda a: a.get_effective_published_time() or datetime.min,
-                reverse=True
-            )
-
-            # Apply limit
-            articles = articles[:limit]
-
-            logger.info(f"Retrieved {len(articles)} articles from daily query")
-            return articles
-
-        except Exception as e:
-            logger.error(f"Error querying daily articles: {e}")
-            # Fallback: get all recent documents by fetched_at
-            return self._fallback_query(start_time, limit)
+        return self._fallback_query(start_time, limit)
 
     def query_weekly_articles(
         self,

@@ -72,32 +72,14 @@ def run_daily_digest() -> dict:
     articles = deduplicate_articles(articles)
     logger.info(f"After deduplication: {len(articles)} articles")
 
-    # Score articles
-    logger.info("Scoring articles...")
-    articles = score_articles(articles)
-
-    # Filter and rank for daily digest
-    logger.info("Filtering and ranking for daily digest...")
-    top_articles = filter_and_rank_daily(articles)
-
-    logger.info(f"Top {len(top_articles)} articles selected")
-
-    # Log top articles
-    for i, article in enumerate(top_articles, 1):
-        logger.info(f"{i}. [{article.total_score:.1f}] {article.title}")
-
-    # Optionally write back scores to Firestore
-    logger.info("Updating Firestore with computed scores...")
-    updated_count = 0
-    for article in top_articles:
-        if db.update_article_scores(article):
-            updated_count += 1
-    logger.info(f"Updated {updated_count} articles in Firestore")
+    # Use all articles (no filtering - send all new updates)
+    articles_to_send = articles
+    logger.info(f"Sending {len(articles_to_send)} articles")
 
     # Generate bilingual summaries using OpenAI
     logger.info("Generating bilingual summaries for daily digest...")
     summarizer = OpenAISummarizer()
-    summaries = summarizer.summarize_articles_batch(top_articles)
+    summaries = summarizer.summarize_articles_batch(articles_to_send)
     logger.info(f"Generated {len(summaries)} summaries")
 
     # Send daily digest
@@ -108,8 +90,8 @@ def run_daily_digest() -> dict:
     result = {
         "success": telegram_success,
         "articles_processed": len(articles),
-        "articles_sent": len(top_articles),
-        "top_titles": [a.title for a in top_articles],
+        "articles_sent": len(articles_to_send),
+        "top_titles": [s.title_en for s in summaries],
         "telegram_status": "sent" if telegram_success else "failed",
     }
 

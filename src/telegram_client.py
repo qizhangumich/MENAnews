@@ -187,35 +187,33 @@ def format_daily_digest(summaries: list, digest_date: datetime) -> str:
 
     # Header
     lines = [
-        f"📰 <b>MENA Investment Daily｜过去24小时Top{len(summaries)}</b>",
+        f"📰 <b>MENA Investment Daily｜{len(summaries)} Updates</b>",
         f"📅 {date_str}",
         "",
     ]
 
     # Articles with bilingual summaries
     for i, summary in enumerate(summaries, 1):
-        # Get effective published time
-        published_at = summary.published_at
-        if published_at:
-            time_str = published_at.astimezone(tz).strftime("%m-%d %H:%M")
-        else:
-            time_str = "未知时间"
-
         # Full title (no truncation)
         title_en = summary.title_en.strip()
         title_cn = summary.title_cn.strip()
+
+        # Description (EN + CN)
+        desc_en = summary.summary_en.strip()
+        desc_cn = summary.summary_cn.strip()
 
         # URL
         url = summary.url if summary.url != "#" else "无链接"
 
         lines.extend([
+            f"━━━━━━━━━━━━━━",
             f"<b>{i}. {title_en}</b>",
             f"<b>{title_cn}</b>",
             "",
-            f"📌 <b>Key Message (CN):</b> {summary.summary_cn}",
-            f"📌 <b>Key Message (EN):</b> {summary.summary_en}",
+            f"<b>EN:</b> {desc_en}",
+            f"<b>CN:</b> {desc_cn}",
             "",
-            f"🏷️ {summary.tags} | 📰 {summary.source} | 🕒 {time_str}",
+            f"📰 {summary.source}",
             f"🔗 {url}",
             "",
         ])
