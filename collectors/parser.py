@@ -13,7 +13,8 @@ from html import unescape
 import re
 
 # Monkey-patch for feedparser 5.2.1 compatibility with Python 3.10+
-# The rfc822 module was removed in Python 3
+
+# 1. The rfc822 module was removed in Python 3
 try:
     import rfc822
 except ImportError:
@@ -26,6 +27,11 @@ except ImportError:
     rfc822.parsedate_tz = email_utils.parsedate_tz
     rfc822.formatdate = email_utils.formatdate
     sys.modules['rfc822'] = rfc822
+
+# 2. base64.decodestring was removed in Python 3.9+ (renamed to decodebytes)
+import base64
+if not hasattr(base64, 'decodestring'):
+    base64.decodestring = base64.decodebytes
 
 import feedparser
 
