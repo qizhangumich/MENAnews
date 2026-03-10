@@ -2,8 +2,8 @@
 # REQUIRES: Python 3.10.x (feedparser incompatible with Python 3.11+)
 
 # RSS feed parsing
-# NOTE: Pinned to 6.0.6 - later versions (6.0.9+) have email._parseaddr issues
-feedparser==6.0.6
+# NOTE: Using 5.2.1 (last stable 5.x) - 6.x has email._parseaddr issues on Python 3.10
+feedparser==5.2.1
 
 # Google Cloud Firestore
 google-cloud-firestore>=2.16.0
