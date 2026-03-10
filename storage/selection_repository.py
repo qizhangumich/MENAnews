@@ -96,6 +96,7 @@ class SelectionRepository:
                 .where("week_key", "==", selection.week_key)
                 .limit(1)
                 .get()
+            )
 
             if existing:
                 doc_id = list(existing)[0].id
