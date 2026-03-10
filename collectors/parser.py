@@ -2,19 +2,9 @@
 """
 RSS feed parser for extracting news articles.
 
-REQUIRES: Python 3.10 (feedparser incompatible with Python 3.11+)
+REQUIRES: Python 3.7+
 """
 import logging
-import sys
-
-# Check Python version compatibility before importing feedparser
-if sys.version_info >= (3, 11):
-    raise ImportError(
-        "Python 3.11+ is not compatible with feedparser. "
-        "Please use Python 3.10 or earlier. "
-        "Download: https://www.python.org/downloads/release/python-3100/"
-    )
-
 from datetime import datetime, timezone
 from typing import List, Dict, Any
 from html import unescape

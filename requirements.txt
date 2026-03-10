@@ -1,5 +1,6 @@
 # MENA News Intelligence System v2 - Python Dependencies
-# REQUIRES: Python 3.10.x (feedparser incompatible with Python 3.11+)
+# REQUIRES: Python 3.7+
+# NOTE: Using feedparser 5.2.1 (stable 5.x series without email module issues)
 
 # RSS feed parsing
 # NOTE: Using 5.2.1 (last stable 5.x) - 6.x has email._parseaddr issues on Python 3.10

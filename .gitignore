@@ -2,6 +2,11 @@
 firebase_service_account.json
 config/firebase_service_account.json
 
+# Environment variables - NEVER commit these
+.env
+.env.local
+.env.production
+
 # Python
 __pycache__/
 *.py[cod]
