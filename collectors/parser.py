@@ -5,10 +5,39 @@ RSS feed parser for extracting news articles.
 REQUIRES: Python 3.7+
 """
 import logging
+import sys
 from datetime import datetime, timezone
 from typing import List, Dict, Any
 from html import unescape
 import re
+
+# Monkey-patch for feedparser 5.2.1 compatibility with Python 3.10+
+# The rfc822 module was removed, and email._parseaddr is not accessible
+try:
+    import rfc822
+except ImportError:
+    # Create a fake rfc822 module using email.utils
+    import email.utils
+    import types
+
+    # Create the rfc822 module shim
+    rfc822 = types.ModuleType('rfc822')
+    rfc822.mktime_tz = email.utils.mktime_tz
+    rfc822.parsedate_tz = email.utils.parsedate_tz
+    rfc822.formatdate = email.utils.formatdate
+    sys.modules['rfc822'] = rfc822
+
+    # Also create email._parseaddr shim if needed
+    try:
+        from email import _parseaddr
+    except (ImportError, ModuleNotFoundError):
+        import email.parseaddr
+        _parseaddr = types.ModuleType('_parseaddr')
+        _parseaddr.AddrSpecClass = email.parseaddr.Address
+        _parseaddr.parsedate = email.utils.parsedate
+        _parseaddr.mktime_tz = email.utils.mktime_tz
+        sys.modules['email._parseaddr'] = _parseaddr
+
 import feedparser
 
 logger = logging.getLogger(__name__)
