@@ -65,10 +65,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Clear pip cache and install dependencies
+        run: |
+          pip cache purge
+          pip install -r requirements.txt
 
       - name: Setup Firebase credentials
         env:
@@ -91,10 +92,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Clear pip cache and install dependencies
+        run: |
+          pip cache purge
+          pip install -r requirements.txt
 
       - name: Setup Firebase credentials
         env:
@@ -117,10 +119,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Clear pip cache and install dependencies
+        run: |
+          pip cache purge
+          pip install -r requirements.txt
 
       - name: Setup Firebase credentials
         env:
@@ -145,10 +148,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Clear pip cache and install dependencies
+        run: |
+          pip cache purge
+          pip install -r requirements.txt
 
       - name: Setup Firebase credentials
         env:
