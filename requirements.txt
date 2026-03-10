@@ -3,8 +3,9 @@
 # NOTE: Using feedparser 5.2.1 (stable 5.x series without email module issues)
 
 # RSS feed parsing
-# NOTE: Using 5.2.1 (last stable 5.x) - 6.x has email._parseaddr issues on Python 3.10
+# NOTE: Using 5.2.1 with setuptools<58 for use_2to3 compatibility
 feedparser==5.2.1
+setuptools<58
 
 # Google Cloud Firestore
 google-cloud-firestore>=2.16.0
