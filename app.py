@@ -2,10 +2,19 @@
 """
 MENA News Intelligence System v2
 Main entry point for all jobs and services.
+
+REQUIRES: Python 3.10 (feedparser incompatible with Python 3.11+)
 """
 import sys
 import logging
 from pathlib import Path
+
+# Check Python version compatibility
+if sys.version_info >= (3, 11):
+    print("ERROR: Python 3.11+ is not compatible with feedparser.")
+    print("Please use Python 3.10 or earlier.")
+    print("Download: https://www.python.org/downloads/release/python-3100/")
+    sys.exit(1)
 
 # Setup logging
 logging.basicConfig(

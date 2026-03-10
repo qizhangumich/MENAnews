@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Execution-First Claude Prompt | MENA News Intelligence System v2</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --code-bg: #0f172a;
+      --code-text: #e5e7eb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 32px;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+    }
+
+    h1, h2, h3, h4 {
+      margin-top: 0;
+      color: #111827;
+    }
+
+    h1 {
+      font-size: 30px;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 24px;
+      margin-top: 36px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h3 {
+      font-size: 18px;
+      margin-top: 28px;
+      color: var(--accent);
+    }
+
+    p, li {
+      font-size: 15px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 18px;
+      border-radius: 12px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+      border: 1px solid #1e293b;
+    }
+
+    code {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    ul, ol {
+      padding-left: 24px;
+    }
+
+    .section {
+      margin-top: 24px;
+    }
+
+    .note {
+      border-left: 4px solid var(--accent);
+      background: #eff6ff;
+      padding: 14px 16px;
+      border-radius: 10px;
+      color: #1e3a8a;
+      margin: 16px 0;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 800px) {
+      body { padding: 16px; }
+      .card { padding: 20px; }
+      .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="badge">Execution-First Prompt</div>
+      <h1>Claude Prompt — MENA News Intelligence System v2</h1>
+      <p class="muted">Use this prompt to help Claude directly implement the modular refactor.</p>
+
+      <h2>Project Goal</h2>
+      <p>
+        Build a modular Python system that refactors the current RSS → Firestore → scoring pipeline into four clearly separated layers:
+      </p>
+      <ol>
+        <li>Raw news collection</li>
+        <li>Independent scoring engine</li>
+        <li>Telegram daily review and human selection</li>
+        <li>Weekly report generation + email delivery</li>
+      </ol>
+
+      <h2>Current Situation</h2>
+
+      <h3>Existing Collection</h3>
+      <ul>
+        <li>Reads around 21 RSS feeds</li>
+        <li>Uses <code>feedparser</code></li>
+        <li>Extracts <code>title</code>, <code>url</code>, <code>description</code>, <code>published_date</code></li>
+        <li>Deduplicates by URL</li>
+        <li>Stores into Firestore collection <code>news</code></li>
+      </ul>
+
+      <h3>Existing Scoring</h3>
+      <p>Two scores already exist:</p>
+      <ul>
+        <li><code>relevance_score</code></li>
+        <li><code>importance_score</code></li>
+      </ul>
+
+      <pre><code>total_score = 0.65 * relevance_score + 0.35 * importance_score</code></pre>
+
+      <h3>Current Problem</h3>
+      <ul>
+        <li>Daily digest sends all past-24h articles</li>
+        <li>Scoring is computed but not properly used to filter/rank daily candidates</li>
+        <li>No proper human selection workflow</li>
+        <li>No structured weekly output for sections 四 / 五 / 九</li>
+        <li>No modular separation between raw data, scoring, human selection, and reporting</li>
+      </ul>
+
+      <h2>Required Workflow</h2>
+
+      <h3>Daily Workflow</h3>
+      <ol>
+        <li>Collect raw news from RSS feeds</li>
+        <li>Score raw news independently</li>
+        <li>Push only candidate news to Telegram</li>
+        <li>Telegram buttons let me assign each article to:
+          <ul>
+            <li>选四</li>
+            <li>选四⭐</li>
+            <li>选五</li>
+            <li>选五⭐</li>
+            <li>四五都选</li>
+            <li>忽略</li>
+          </ul>
+        </li>
+        <li>Human selection must override machine ranking</li>
+      </ol>
+
+      <h3>Weekly Workflow</h3>
+      <ol>
+        <li>Read selected items for current week</li>
+        <li>Group selected items into 四 and 五</li>
+        <li>Generate:
+          <ul>
+            <li>四. 募资市场动态</li>
+            <li>五. 投资者关注</li>
+            <li>九. 募资的思考和反思</li>
+          </ul>
+        </li>
+        <li>Save weekly report to Firestore</li>
+        <li>Email the final report to me</li>
+      </ol>
+
+      <h2>Core Principles</h2>
+      <ol>
+        <li>Raw news must remain independent from scoring and selection</li>
+        <li>Scoring must be separated so weights can be changed later</li>
+        <li>Human selection is the strongest signal</li>
+        <li>Telegram is for daily review</li>
+        <li>Email is for final weekly delivery</li>
+        <li>My Telegram click is not just “select”; it is also section routing</li>
+      </ol>
+
+      <h2>Required Firestore Collections</h2>
+
+      <h3>1. feed_sources</h3>
+      <p>Purpose: manage RSS feed list separately from collector logic</p>
+      <ul>
+        <li>name</li>
+        <li>url</li>
+        <li>category</li>
+        <li>active</li>
+        <li>priority</li>
+        <li>created_at</li>
+        <li>updated_at</li>
+      </ul>
+
+      <h3>2. news_raw</h3>
+      <p>Purpose: store original collected news only</p>
+      <ul>
+        <li>title</li>
+        <li>description</li>
+        <li>snippet_text</li>
+        <li>source</li>
+        <li>url</li>
+        <li>published_at</li>
+        <li>fetched_at</li>
+        <li>tags</li>
+        <li>language</li>
+        <li>normalized_hash</li>
+      </ul>
+      <div class="note">
+        Deduplicate by URL primarily. Keep this collection clean and raw. If migration is difficult, current <code>news</code> collection may temporarily act as raw layer, but preferred target is <code>news_raw</code>.
+      </div>
+
+      <h3>3. news_scores</h3>
+      <p>Purpose: store score outputs separately</p>
+      <ul>
+        <li>news_id</li>
+        <li>relevance_score</li>
+        <li>importance_score</li>
+        <li>selection_score</li>
+        <li>total_machine_score</li>
+        <li>final_priority_score</li>
+        <li>section_suggested</li>
+        <li>entity_tags</li>
+        <li>topic_tags</li>
+        <li>scored_at</li>
+        <li>score_version</li>
+      </ul>
+
+      <pre><code>selection_score = 0  # default
+if human_selected:
+    selection_score = 100
+    final_priority_score = 100
+else:
+    final_priority_score = total_machine_score</code></pre>
+
+      <h3>4. news_selection</h3>
+      <p>Purpose: store human selection decisions from Telegram</p>
+      <ul>
+        <li>news_id</li>
+        <li>title</li>
+        <li>url</li>
+        <li>source</li>
+        <li>week_key</li>
+        <li>selected_sections</li>
+        <li>starred</li>
+        <li>selection_score</li>
+        <li>selected_at</li>
+        <li>selected_by</li>
+        <li>selection_method</li>
+        <li>note</li>
+      </ul>
+
+      <h3>5. telegram_push_log</h3>
+      <p>Purpose: avoid repeated pushes</p>
+      <ul>
+        <li>news_id</li>
+        <li>telegram_message_id</li>
+        <li>week_key</li>
+        <li>push_batch</li>
+        <li>pushed_at</li>
+        <li>status</li>
+      </ul>
+
+      <h3>6. weekly_reports</h3>
+      <p>Purpose: store final generated reports</p>
+      <ul>
+        <li>week_key</li>
+        <li>section_4</li>
+        <li>section_5</li>
+        <li>section_9</li>
+        <li>selected_news_ids</li>
+        <li>generated_at</li>
+        <li>status</li>
+        <li>email_sent</li>
+        <li>email_sent_at</li>
+        <li>email_to</li>
+      </ul>
+
+      <h3>7. system_config</h3>
+      <p>Purpose: centralize editable weights and thresholds</p>
+      <ul>
+        <li>score_weights.relevance_weight</li>
+        <li>score_weights.importance_weight</li>
+        <li>thresholds.daily_push_threshold</li>
+        <li>thresholds.importance_min</li>
+        <li>thresholds.relevance_min</li>
+        <li>selection.selection_score_default</li>
+        <li>telegram.daily_push_limit</li>
+      </ul>
+
+      <h2>Required Project Structure</h2>
+      <pre><code>mena_news_system/
+│
+├── app.py
+├── config.py
+├── requirements.txt
+├── .env.example
+│
+├── feeds/
+│   ├── registry.py
+│   └── feed_manager.py
+│
+├── collectors/
+│   ├── collector.py
+│   ├── parser.py
+│   └── deduplicator.py
+│
+├── scoring/
+│   ├── engine.py
+│   ├── rules.py
+│   ├── weights.py
+│   └── tagger.py
+│
+├── storage/
+│   ├── firestore_client.py
+│   ├── feed_repository.py
+│   ├── raw_news_repository.py
+│   ├── score_repository.py
+│   ├── selection_repository.py
+│   ├── push_log_repository.py
+│   └── report_repository.py
+│
+├── telegram/
+│   ├── bot.py
+│   ├── keyboards.py
+│   ├── handlers.py
+│   ├── callback_parser.py
+│   └── push_service.py
+│
+├── reports/
+│   ├── weekly_generator.py
+│   ├── prompt_builder.py
+│   ├── formatter.py
+│   └── context_loader.py
+│
+├── email/
+│   └── sender.py
+│
+├── jobs/
+│   ├── run_collection.py
+│   ├── run_scoring.py
+│   ├── run_daily_push.py
+│   └── run_weekly_report.py
+│
+└── utils/
+    ├── datetime_utils.py
+    ├── text_utils.py
+    └── logger.py</code></pre>
+
+      <h2>Scoring Requirements</h2>
+
+      <h3>Relevance Score</h3>
+      <p>Consider:</p>
+      <ul>
+        <li>SWF entities: Mubadala, ADIA, ADQ, PIF, QIA, KIA, OIA</li>
+        <li>Keywords: sovereign wealth, SWF, family office, fund, LP, GP, PE, VC, IPO, merger, acquisition, investment, financing</li>
+      </ul>
+
+      <h3>Importance Score</h3>
+      <p>Consider:</p>
+      <ul>
+        <li>source credibility</li>
+        <li>event impact</li>
+        <li>entity importance</li>
+        <li>freshness</li>
+      </ul>
+
+      <h3>Baseline Logic to Preserve</h3>
+      <div class="two-col">
+        <div>
+          <h4>Relevance Examples</h4>
+          <ul>
+            <li>SWF entity match → +45</li>
+            <li>“sovereign wealth” / “SWF” → +35</li>
+            <li>“family office” → +30</li>
+            <li>fund / LP / GP / PE / VC → +20</li>
+            <li>IPO / merger / acquisition → +15</li>
+            <li>investment / financing → +10</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Importance Examples</h4>
+          <ul>
+            <li>Reuters → +40</li>
+            <li>FT / WSJ / Bloomberg → +38</li>
+            <li>The National → +30</li>
+            <li>Zawya → +28</li>
+            <li>others → +15</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Event Impact</h4>
+      <ul>
+        <li>IPO / M&amp;A / buyout → +35</li>
+        <li>funding round → +30</li>
+        <li>fund launch / mandate → +28</li>
+        <li>policy / regulation → +25</li>
+        <li>earnings / ratings → +18</li>
+      </ul>
+
+      <h4>Entity Importance</h4>
+      <ul>
+        <li>SWF entities → +20</li>
+        <li>major banks → +12</li>
+        <li>central banks / regulators → +10</li>
+      </ul>
+
+      <h4>Freshness</h4>
+      <ul>
+        <li>&lt;6h → +5</li>
+        <li>&lt;12h → +4</li>
+        <li>&lt;24h → +3</li>
+        <li>&lt;48h → +2</li>
+        <li>older → +1</li>
+      </ul>
+
+      <pre><code>total_machine_score = relevance_weight * relevance_score + importance_weight * importance_score</code></pre>
+      <pre><code>if human_selected:
+    selection_score = 100
+    final_priority_score = 100</code></pre>
+
+      <h2>Suggested Section Classifier</h2>
+      <h3>Suggest 四 if article contains themes like:</h3>
+      <ul>
+        <li>raise</li>
+        <li>fundraising</li>
+        <li>fundraise</li>
+        <li>financing</li>
+        <li>capital raise</li>
+        <li>IPO</li>
+        <li>deal</li>
+        <li>acquisition</li>
+        <li>M&amp;A</li>
+        <li>infrastructure investment</li>
+      </ul>
+
+      <h3>Suggest 五 if article contains:</h3>
+      <ul>
+        <li>QIA</li>
+        <li>Mubadala</li>
+        <li>ADIA</li>
+        <li>PIF</li>
+        <li>ADQ</li>
+        <li>OIA</li>
+        <li>KIA</li>
+        <li>2PointZero</li>
+        <li>sovereign fund</li>
+        <li>family office</li>
+        <li>investor behavior</li>
+      </ul>
+
+      <p>My Telegram selection is final truth. Machine suggestion is only recommendation.</p>
+
+      <h2>Daily Telegram Review Requirements</h2>
+
+      <h3>Daily Push Logic</h3>
+      <ul>
+        <li>Read recent scored items from past 24 hours</li>
+        <li>Use score threshold from <code>system_config</code></li>
+        <li>Sort by <code>total_machine_score</code></li>
+        <li>Push only candidates above threshold</li>
+        <li>Respect daily cap, e.g. top 20</li>
+        <li>Do not resend items already in <code>telegram_push_log</code></li>
+      </ul>
+
+      <h3>Telegram Message Content</h3>
+      <ul>
+        <li>title</li>
+        <li>source</li>
+        <li>published date</li>
+        <li>scores: relevance, importance, total</li>
+        <li>tags</li>
+        <li>suggested section</li>
+        <li>short snippet</li>
+        <li>URL</li>
+      </ul>
+
+      <h3>Inline Keyboard Layout</h3>
+      <ul>
+        <li>Row 1: 选四 / 选四⭐</li>
+        <li>Row 2: 选五 / 选五⭐</li>
+        <li>Row 3: 四五都选 / 忽略</li>
+      </ul>
+
+      <h3>Required Behaviors on Click</h3>
+      <ul>
+        <li>Create or update record in <code>news_selection</code></li>
+        <li>Update <code>news_scores</code>:
+          <ul>
+            <li><code>selection_score = 100</code></li>
+            <li><code>final_priority_score = 100</code></li>
+          </ul>
+        </li>
+        <li>Store selected section(s)</li>
+        <li>Store <code>starred = true</code> if star option used</li>
+        <li>Return brief Telegram confirmation:
+          <ul>
+            <li>已加入四</li>
+            <li>已加入四并标星</li>
+            <li>已加入五</li>
+            <li>已加入五并标星</li>
+            <li>已加入四和五</li>
+            <li>已忽略</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>Callback Data Design</h3>
+      <pre><code>sel|4|newsId
+sel|4s|newsId
+sel|5|newsId
+sel|5s|newsId
+sel|45|newsId
+sel|x|newsId</code></pre>
+
+      <h2>Weekly Report Generator Requirements</h2>
+
+      <p>Support either:</p>
+      <ul>
+        <li>Telegram command <code>/generate_weekly_report</code></li>
+        <li>or a scheduled weekly job</li>
+      </ul>
+
+      <h3>Inputs</h3>
+      <ul>
+        <li><code>news_selection</code> for the current week</li>
+        <li>related raw news from <code>news_raw</code></li>
+        <li>related score data from <code>news_scores</code></li>
+        <li>optional manual weekly context text</li>
+      </ul>
+
+      <h3>Output Sections</h3>
+
+      <h4>四. 募资市场动态</h4>
+      <pre><code>1. Subheading
+• event itself
+• industry trend
+• MENA/GCC capital connection
+• implications for China projects or fundraising work</code></pre>
+
+      <h4>五. 投资者关注</h4>
+      <pre><code>1. Subheading
+• who invested in what
+• what preference this reflects
+• what this says about MENA capital allocation
+• implications for China cooperation opportunities</code></pre>
+
+      <h4>九. 募资的思考和反思</h4>
+      <p>Generate thoughtful Chinese narrative reflection.</p>
+      <p>Tone:</p>
+      <ul>
+        <li>internal weekly memo</li>
+        <li>strategic</li>
+        <li>practical</li>
+        <li>links external news with real fundraising execution</li>
+        <li>emphasize:
+          <ul>
+            <li>中东资金对接</li>
+            <li>国内资源组织</li>
+            <li>产业主题匹配</li>
+          </ul>
+        </li>
+      </ul>
+
+      <div class="note">
+        Section 九 should support optional manual context such as meetings with ADNOC-related funds, discussions with People’s Daily fund, domestic GP / LP interactions, and sector themes pushed this week.
+      </div>
+
+      <h2>Weekly Report Formatting Requirements</h2>
+      <pre><code>四. 募资市场动态
+
+1. ...
+• ...
+• ...
+• ...
+• ...
+
+2. ...
+• ...
+• ...
+• ...
+• ...
+
+五. 投资者关注
+
+1. ...
+• ...
+• ...
+• ...
+• ...
+
+2. ...
+• ...
+• ...
+• ...
+• ...
+
+九. 募资的思考和反思
+
+...</code></pre>
+
+      <p>Style:</p>
+      <ul>
+        <li>Chinese</li>
+        <li>formal but practical</li>
+        <li>suitable for internal report / email / later PPT reuse</li>
+      </ul>
+
+      <h2>Email Delivery Requirements</h2>
+      <p>After weekly report generation:</p>
+      <ul>
+        <li>save report to <code>weekly_reports</code></li>
+        <li>email full report to me</li>
+      </ul>
+
+      <pre><code>MENA Weekly Fundraising Report | {week_key}</code></pre>
+
+      <p>Email content:</p>
+      <ul>
+        <li>full report text</li>
+        <li>plain text is acceptable for MVP</li>
+        <li>HTML optional</li>
+      </ul>
+
+      <h2>Required Jobs</h2>
+
+      <h3>jobs/run_collection.py</h3>
+      <ul>
+        <li>load active feeds</li>
+        <li>fetch raw RSS</li>
+        <li>parse</li>
+        <li>deduplicate</li>
+        <li>save to <code>news_raw</code></li>
+      </ul>
+
+      <h3>jobs/run_scoring.py</h3>
+      <ul>
+        <li>read new raw news</li>
+        <li>compute scores</li>
+        <li>generate section suggestions</li>
+        <li>write to <code>news_scores</code></li>
+      </ul>
+
+      <h3>jobs/run_daily_push.py</h3>
+      <ul>
+        <li>read recent scored items</li>
+        <li>apply threshold + ranking</li>
+        <li>skip already pushed items</li>
+        <li>send Telegram messages with buttons</li>
+      </ul>
+
+      <h3>jobs/run_weekly_report.py</h3>
+      <ul>
+        <li>read current week’s selected items</li>
+        <li>generate section 4 / 5 / 9</li>
+        <li>save report</li>
+        <li>email report</li>
+      </ul>
+
+      <h2>Reuse from Existing Code</h2>
+      <p>Reuse as much as possible from old code:</p>
+      <ul>
+        <li>feed list</li>
+        <li>RSS parser logic</li>
+        <li>dedup logic</li>
+        <li>current score ideas</li>
+        <li>Firestore connection</li>
+        <li>source credibility mapping</li>
+      </ul>
+
+      <p>Do not throw away working parts. But do refactor them into a modular structure.</p>
+
+      <h2>Deliverables Required</h2>
+
+      <h3>Deliverable 1</h3>
+      <p>Final proposed folder structure</p>
+
+      <h3>Deliverable 2</h3>
+      <p>Firestore schema definitions / repository layer</p>
+
+      <h3>Deliverable 3</h3>
+      <p><code>.env.example</code></p>
+      <ul>
+        <li>GOOGLE_APPLICATION_CREDENTIALS</li>
+        <li>FIRESTORE_PROJECT_ID</li>
+        <li>TELEGRAM_BOT_TOKEN</li>
+        <li>TELEGRAM_CHAT_ID</li>
+        <li>SMTP_HOST</li>
+        <li>SMTP_PORT</li>
+        <li>SMTP_USERNAME</li>
+        <li>SMTP_PASSWORD</li>
+        <li>EMAIL_TO</li>
+        <li>LLM_API_KEY</li>
+      </ul>
+
+      <h3>Deliverable 4</h3>
+      <p><code>requirements.txt</code></p>
+
+      <h3>Deliverable 5</h3>
+      <p><code>README.md</code> including:</p>
+      <ul>
+        <li>setup</li>
+        <li>env config</li>
+        <li>Firestore collection model</li>
+        <li>how to run jobs</li>
+        <li>how Telegram selection works</li>
+        <li>how weekly report is generated</li>
+      </ul>
+
+      <h3>Deliverable 6</h3>
+      <p>Migration notes from current <code>news</code> collection to the new structure</p>
+
+      <h2>Technical Preferences</h2>
+      <ul>
+        <li>Language: Python</li>
+        <li>Storage: Firestore</li>
+        <li>Messaging: Telegram Bot API</li>
+        <li>Email: SMTP acceptable</li>
+        <li>Scheduling: keep portable and simple</li>
+        <li>Code style:
+          <ul>
+            <li>modular</li>
+            <li>readable</li>
+            <li>typed where useful</li>
+            <li>no giant monolithic script</li>
+            <li>easy to tune and maintain</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h2>Build Order</h2>
+      <ol>
+        <li>Base config + repository layer</li>
+        <li>Feed manager + raw collector</li>
+        <li>Scoring engine + <code>news_scores</code></li>
+        <li>Telegram daily push + callback handling + <code>news_selection</code></li>
+        <li>Weekly report generator + email sender</li>
+        <li>README + migration notes</li>
+      </ol>
+
+      <h2>Acceptance Criteria</h2>
+      <ol>
+        <li>I can add/disable RSS feeds without rewriting collector logic</li>
+        <li>Raw news is stored independently from scoring and selection</li>
+        <li>Scoring weights can be changed centrally</li>
+        <li>Daily Telegram push only sends filtered candidate items</li>
+        <li>Telegram buttons directly assign news to 四 or 五</li>
+        <li>Human selection overrides machine ranking</li>
+        <li>Weekly report is generated from selected items</li>
+        <li>Weekly report contains:
+          <ul>
+            <li>四. 募资市场动态</li>
+            <li>五. 投资者关注</li>
+            <li>九. 募资的思考和反思</li>
+          </ul>
+        </li>
+        <li>Weekly report is saved to Firestore and emailed to me</li>
+        <li>Codebase is modular and maintainable</li>
+      </ol>
+
+      <h2>Important Behavior Details</h2>
+
+      <h3>For Daily Review</h3>
+      <p>Telegram is the main human decision interface.</p>
+
+      <h3>For Selection</h3>
+      <p>My click means:</p>
+      <ul>
+        <li>this article matters</li>
+        <li>this article belongs in a report section</li>
+        <li>this article should outrank machine ranking</li>
+      </ul>
+
+      <h3>For Section 四</h3>
+      <ul>
+        <li>fundraising</li>
+        <li>capital market moves</li>
+        <li>fundraising trends</li>
+        <li>IPO / deal / infrastructure capital activity</li>
+        <li>implications for fundraising</li>
+      </ul>
+
+      <h3>For Section 五</h3>
+      <ul>
+        <li>investor behavior</li>
+        <li>SWF / sovereign / strategic investor actions</li>
+        <li>capital allocation preferences</li>
+        <li>implications for partnership opportunities</li>
+      </ul>
+
+      <h3>For Section 九</h3>
+      <p>Do not make it generic macro commentary. It should sound like a real internal fundraising reflection.</p>
+
+      <h2>Optional Enhancements if Time Allows</h2>
+      <ul>
+        <li>re-score all articles with new weights</li>
+        <li>resend candidate list</li>
+        <li>support “九参考”</li>
+        <li>HTML email</li>
+        <li>title similarity dedup beyond URL</li>
+        <li>investor/entity extraction</li>
+        <li>small dashboard for weekly selection stats</li>
+      </ul>
+
+      <h2>Final Instruction</h2>
+      <p>
+        Now start implementing the MVP in code. Do not stay at architecture summary level.
+      </p>
+      <p>Start with:</p>
+      <ol>
+        <li>final folder structure</li>
+        <li>Firestore schema definitions</li>
+        <li><code>.env.example</code></li>
+        <li><code>requirements.txt</code></li>
+        <li>repository layer</li>
+        <li>feed manager and raw collector</li>
+      </ol>
+      <p>Then continue module by module until the MVP is complete.</p>
+    </div>
+  </div>
+</body>
+</html>

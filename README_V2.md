@@ -2,6 +2,11 @@
 
 A modular Python system for collecting, scoring, and reporting Middle East investment and sovereign wealth fund (SWF) news.
 
+## Requirements
+
+- **Python 3.10** (feedparser is incompatible with Python 3.11+)
+- pip
+
 ## Overview
 
 This system provides:
