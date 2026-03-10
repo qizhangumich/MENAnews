@@ -1,0 +1,167 @@
+name: MENA News Intelligence System v2
+
+on:
+  schedule:
+    # News collection - every 6 hours
+    - cron: '0 */6 * * *'
+    # Scoring - every 2 hours
+    - cron: '0 */2 * * *'
+    # Daily push - 8 AM Beijing time (UTC 00:00)
+    - cron: '0 0 * * *'
+    # Weekly report - Friday 8 AM Beijing time (UTC 00:00)
+    - cron: '0 0 * * 5'
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      run-collection: ${{ steps.check.outputs.run-collection }}
+      run-scoring: ${{ steps.check.outputs.run-scoring }}
+      run-daily-push: ${{ steps.check.outputs.run-daily-push }}
+      run-weekly: ${{ steps.check.outputs.run-weekly }}
+    steps:
+      - name: Determine run type
+        id: check
+        run: |
+          DAY=$(date +%u)
+          HOUR=$(date +%H)
+          MINUTE=$(date +%M)
+
+          # Collection: every 6 hours
+          if [ "$HOUR" = "00" ] || [ "$HOUR" = "06" ] || [ "$HOUR" = "12" ] || [ "$HOUR" = "18" ]; then
+            echo "run-collection=true" >> $GITHUB_OUTPUT
+          fi
+
+          # Scoring: every 2 hours
+          echo "run-scoring=true" >> $GITHUB_OUTPUT
+
+          # Daily push: 00:00 every day
+          if [ "$HOUR" = "00" ] && [ "$MINUTE" = "00" ]; then
+            echo "run-daily-push=true" >> $GITHUB_OUTPUT
+          fi
+
+          # Weekly report: Friday 00:00
+          if [ "$DAY" = "5" ] && [ "$HOUR" = "00" ] && [ "$MINUTE" = "00" ]; then
+            echo "run-weekly=true" >> $GITHUB_OUTPUT
+          fi
+
+          # Manual dispatch: run all
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run-collection=true" >> $GITHUB_OUTPUT
+            echo "run-scoring=true" >> $GITHUB_OUTPUT
+            echo "run-daily-push=true" >> $GITHUB_OUTPUT
+            echo "run-weekly=true" >> $GITHUB_OUTPUT
+          fi
+
+  collect-news:
+    needs: setup
+    if: needs.setup.outputs.run-collection == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Firebase credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase_service_account.json
+
+      - name: Run news collection
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: python app.py collect
+
+  score-articles:
+    needs: setup
+    if: needs.setup.outputs.run-scoring == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Firebase credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase_service_account.json
+
+      - name: Run scoring engine
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: python app.py score
+
+  daily-push:
+    needs: setup
+    if: needs.setup.outputs.run-daily-push == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Firebase credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase_service_account.json
+
+      - name: Run daily Telegram push
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: python app.py daily-push
+
+  weekly-report:
+    needs: setup
+    if: needs.setup.outputs.run-weekly == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Firebase credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase_service_account.json
+
+      - name: Generate weekly report
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python app.py weekly
