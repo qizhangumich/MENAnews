@@ -89,10 +89,25 @@ class FeedRepository:
         Returns:
             List of default FeedSource objects
         """
-        from rss_sources import RSS_SOURCES
+        import json
+        from pathlib import Path
+
+        # Try to load from rss_sources.json
+        rss_sources_path = Path(__file__).parent.parent / "rss_sources.json"
+        try:
+            with open(rss_sources_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                sources_list = data.get("sources", [])
+        except Exception as e:
+            logger.warning(f"Could not load rss_sources.json: {e}")
+            # Fallback to hardcoded feeds
+            sources_list = [
+                {"name": "Reuters Middle East", "url": "https://www.reuters.com/world/middle-east/rss"},
+                {"name": "Reuters Business", "url": "https://www.reuters.com/business/rss"},
+            ]
 
         default_feeds = []
-        for source in RSS_SOURCES:
+        for source in sources_list:
             feed = FeedSource(
                 name=source["name"],
                 url=source["url"],
