@@ -4,8 +4,9 @@ A modular Python system for collecting, scoring, and reporting Middle East inves
 
 ## Requirements
 
-- **Python 3.10** (feedparser is incompatible with Python 3.11+)
+- **Python 3.10** (feedparser 6.0.9 is incompatible with Python 3.11+)
 - pip or venv
+- **feedparser==6.0.9** (pinned - newer versions have email module issues)
 
 ## Quick Start (Virtual Environment)
 
