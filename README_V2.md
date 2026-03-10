@@ -5,7 +5,75 @@ A modular Python system for collecting, scoring, and reporting Middle East inves
 ## Requirements
 
 - **Python 3.10** (feedparser is incompatible with Python 3.11+)
-- pip
+- pip or venv
+
+## Quick Start (Virtual Environment)
+
+### 1. Create Virtual Environment with Python 3.10
+
+**Option A: Using venv (if you have Python 3.10 installed)**
+```bash
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+**Option B: Using pyenv (recommended - manages multiple Python versions)**
+```bash
+# Install Python 3.10
+pyenv install 3.10.0
+pyenv local 3.10.0
+
+# Create and activate virtual environment
+python -m venv venv
+venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+**Option C: Download Python 3.10**
+- Windows: https://www.python.org/downloads/release/python-3100/
+- Install with "Add to PATH" option
+- Then run the venv commands above
+
+### 2. Configure Environment
+
+Copy `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your credentials:
+
+```bash
+# Firebase
+GOOGLE_APPLICATION_CREDENTIALS=./firebase_service_account.json
+FIREBASE_PROJECT_ID=menanews-4a30c
+
+# Telegram (get token from @BotFather)
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+
+# SMTP (163.com)
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+SMTP_USER=your_email@163.com
+SMTP_PASSWORD=your_password
+EMAIL_TO=zhangqi@cpe-fund.com
+
+# OpenAI
+OPENAI_API_KEY=sk-your-key
+```
 
 ## Overview
 

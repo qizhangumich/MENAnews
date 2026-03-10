@@ -1,4 +1,5 @@
-# MENA News Collector & Ranking Service - Python Dependencies
+# MENA News Intelligence System v2 - Python Dependencies
+# REQUIRES: Python 3.10.x (feedparser incompatible with Python 3.11+)
 
 # RSS feed parsing
 feedparser>=6.0.10
@@ -6,7 +7,7 @@ feedparser>=6.0.10
 # Google Cloud Firestore
 google-cloud-firestore>=2.16.0
 
-# Scheduling (for scheduler.py)
+# Scheduling
 schedule>=1.2.0
 
 # HTTP requests
@@ -15,8 +16,8 @@ requests>=2.31.0
 # Environment variables
 python-dotenv>=1.0.0
 
-# OpenAI (for enhanced summaries and weekly reports)
+# OpenAI (for weekly reports)
 openai>=1.0.0
 
-# Telegram Bot (for inline keyboards and callbacks)
+# Telegram Bot (for inline keyboards)
 python-telegram-bot>=20.0
