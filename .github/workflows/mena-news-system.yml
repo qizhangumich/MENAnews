@@ -69,7 +69,10 @@ jobs:
       - name: Clear pip cache and install dependencies
         run: |
           pip cache purge
-          pip install -r requirements.txt
+          pip uninstall -y feedparser || true
+          pip install 'setuptools<58'
+          pip install 'feedparser==5.2.1'
+          pip install -r requirements.txt || pip install google-cloud-firestore schedule requests python-dotenv openai python-telegram-bot
 
       - name: Setup Firebase credentials
         env:
@@ -96,7 +99,10 @@ jobs:
       - name: Clear pip cache and install dependencies
         run: |
           pip cache purge
-          pip install -r requirements.txt
+          pip uninstall -y feedparser || true
+          pip install 'setuptools<58'
+          pip install 'feedparser==5.2.1'
+          pip install -r requirements.txt || pip install google-cloud-firestore schedule requests python-dotenv openai python-telegram-bot
 
       - name: Setup Firebase credentials
         env:
@@ -123,7 +129,10 @@ jobs:
       - name: Clear pip cache and install dependencies
         run: |
           pip cache purge
-          pip install -r requirements.txt
+          pip uninstall -y feedparser || true
+          pip install 'setuptools<58'
+          pip install 'feedparser==5.2.1'
+          pip install -r requirements.txt || pip install google-cloud-firestore schedule requests python-dotenv openai python-telegram-bot
 
       - name: Setup Firebase credentials
         env:
@@ -152,7 +161,10 @@ jobs:
       - name: Clear pip cache and install dependencies
         run: |
           pip cache purge
-          pip install -r requirements.txt
+          pip uninstall -y feedparser || true
+          pip install 'setuptools<58'
+          pip install 'feedparser==5.2.1'
+          pip install -r requirements.txt || pip install google-cloud-firestore schedule requests python-dotenv openai python-telegram-bot
 
       - name: Setup Firebase credentials
         env:
