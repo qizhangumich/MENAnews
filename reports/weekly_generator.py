@@ -10,8 +10,7 @@ from typing import List, Optional
 from storage.selection_repository import SelectionRepository, get_week_key
 from storage.raw_news_repository import RawNewsRepository
 from storage.report_repository import WeeklyReport, ReportRepository
-from email.sender import EmailSender
-from config import Config
+from email_sender.sender import EmailSender
 from config import Config
 
 logger = logging.getLogger(__name__)
