@@ -16,6 +16,7 @@ class NewsScore:
     """News score data model."""
 
     def __init__(self, **kwargs):
+        self.id = kwargs.get("id", "")  # Firestore document ID
         self.news_id = kwargs.get("news_id", "")
         self.relevance_score = kwargs.get("relevance_score", 0.0)
         self.importance_score = kwargs.get("importance_score", 0.0)

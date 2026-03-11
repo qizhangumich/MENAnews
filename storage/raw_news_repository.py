@@ -18,6 +18,7 @@ class RawNews:
     """Raw news article data model."""
 
     def __init__(self, **kwargs):
+        self.id = kwargs.get("id", "")  # Firestore document ID
         self.title = kwargs.get("title", "")
         self.description = kwargs.get("description", "")
         self.snippet_text = kwargs.get("snippet_text", "")

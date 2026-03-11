@@ -17,6 +17,7 @@ class TelegramPushLog:
     """Telegram push log data model."""
 
     def __init__(self, **kwargs):
+        self.id = kwargs.get("id", "")  # Firestore document ID
         self.news_id = kwargs.get("news_id", "")
         self.telegram_message_id = kwargs.get("telegram_message_id", 0)
         self.week_key = kwargs.get("week_key", get_week_key())

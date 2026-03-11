@@ -16,6 +16,7 @@ class FeedSource:
     """Feed source data model."""
 
     def __init__(self, **kwargs):
+        self.id = kwargs.get("id", "")  # Firestore document ID
         self.name = kwargs.get("name", "")
         self.url = kwargs.get("url", "")
         self.category = kwargs.get("category", "general")

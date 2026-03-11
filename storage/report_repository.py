@@ -17,6 +17,7 @@ class WeeklyReport:
     """Weekly report data model."""
 
     def __init__(self, **kwargs):
+        self.id = kwargs.get("id", "")  # Firestore document ID
         self.week_key = kwargs.get("week_key", get_week_key())
         self.section_4 = kwargs.get("section_4", "")  # 募资市场动态
         self.section_5 = kwargs.get("section_5", "")  # 投资者关注

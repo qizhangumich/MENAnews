@@ -29,6 +29,7 @@ class NewsSelection:
     """News selection data model."""
 
     def __init__(self, **kwargs):
+        self.id = kwargs.get("id", "")  # Firestore document ID
         self.news_id = kwargs.get("news_id", "")
         self.title = kwargs.get("title", "")
         self.url = kwargs.get("url", "")
