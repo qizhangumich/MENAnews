@@ -20,16 +20,16 @@ class SelectionKeyboards:
         """
         keyboard = [
             [
-                InlineKeyboardButton("选四", callback_data=f"sel|4|{news_id}"),
-                InlineKeyboardButton("选四⭐", callback_data=f"sel|4s|{news_id}"),
+                InlineKeyboardButton("4️⃣ 选四", callback_data=f"sel|4|{news_id}"),
+                InlineKeyboardButton("5️⃣ 选五", callback_data=f"sel|5|{news_id}"),
             ],
             [
-                InlineKeyboardButton("选五", callback_data=f"sel|5|{news_id}"),
-                InlineKeyboardButton("选五⭐", callback_data=f"sel|5s|{news_id}"),
+                InlineKeyboardButton("⭐ 四", callback_data=f"sel|4s|{news_id}"),
+                InlineKeyboardButton("⭐ 五", callback_data=f"sel|5s|{news_id}"),
             ],
             [
-                InlineKeyboardButton("四五都选", callback_data=f"sel|45|{news_id}"),
-                InlineKeyboardButton("忽略", callback_data=f"sel|x|{news_id}"),
+                InlineKeyboardButton("📋 两篇都选", callback_data=f"sel|45|{news_id}"),
+                InlineKeyboardButton("🗑️ 忽略", callback_data=f"sel|x|{news_id}"),
             ],
         ]
         return InlineKeyboardMarkup(keyboard)
