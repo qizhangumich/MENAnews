@@ -51,7 +51,7 @@ def main():
         return run_weekly_report()
 
     elif command == "bot":
-        from telegram.bot import run_bot
+        from tg_bot.bot import run_bot
         run_bot()
         return 0
 

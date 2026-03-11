@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from storage.raw_news_repository import RawNewsRepository
 from storage.score_repository import ScoreRepository
 from storage.push_log_repository import PushLogRepository
-from telegram.push_service import PushService
+from tg_bot.push_service import PushService
 from config import Config
 
 logging.basicConfig(

@@ -9,9 +9,9 @@ from datetime import datetime, timezone
 from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-from telegram.keyboards import SelectionKeyboards, CallbackParser
-from telegram.formatter import TelegramFormatter
-from telegram.push_service import PushService
+from tg_bot.keyboards import SelectionKeyboards, CallbackParser
+from tg_bot.formatter import TelegramFormatter
+from tg_bot.push_service import PushService
 from storage.raw_news_repository import RawNewsRepository
 from storage.score_repository import ScoreRepository
 from storage.selection_repository import NewsSelection, SelectionRepository, get_week_key

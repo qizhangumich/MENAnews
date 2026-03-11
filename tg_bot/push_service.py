@@ -9,8 +9,8 @@ from typing import List, Optional
 from telegram import Bot
 from telegram.error import TelegramError
 
-from telegram.keyboards import SelectionKeyboards
-from telegram.formatter import TelegramFormatter
+from tg_bot.keyboards import SelectionKeyboards
+from tg_bot.formatter import TelegramFormatter
 from storage.raw_news_repository import RawNewsRepository
 from storage.score_repository import NewsScore
 from storage.push_log_repository import TelegramPushLog, PushLogRepository
