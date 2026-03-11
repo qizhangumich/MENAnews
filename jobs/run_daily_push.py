@@ -52,7 +52,7 @@ def main():
 
     logger.info(f"get_recent_candidates returned {len(scores)} scores")
     if scores:
-        logger.info(f"Sample scores: {[f'{s.final_priority_score or s.total_machine_score:.1f}' for s in scores[:5]]")
+        logger.info(f"Sample scores: {[f'{s.final_priority_score or s.total_machine_score:.1f}' for s in scores[:5]]}")
 
     if not scores:
         logger.warning("No candidates found")
@@ -115,8 +115,6 @@ def main():
         logger.error(f"Bot token length: {len(push_service.bot_token)}")
         logger.error(f"Chat ID: {push_service.chat_id}")
         return 1
-
-    return 0
 
     return 0
 
