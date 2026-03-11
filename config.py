@@ -61,7 +61,11 @@ class EmailConfig:
     smtp_port: int = field(default_factory=lambda: int(os.getenv("SMTP_PORT", "465")))
     smtp_user: str = field(default_factory=lambda: os.getenv("SMTP_USER", ""))
     smtp_password: str = field(default_factory=lambda: os.getenv("SMTP_PASSWORD", ""))
-    email_to: str = field(default_factory=lambda: os.getenv("EMAIL_RECIPIENTS") or os.getenv("EMAIL_TO", "zhangqi@cpe-fund.com"))
+    # Support multiple recipients (comma-separated)
+    email_recipients: list = field(default_factory=lambda: (
+        [e.strip() for e in os.getenv("EMAIL_RECIPIENTS", "").split(",") if e.strip()]
+        or [os.getenv("EMAIL_TO", "zhangqi@cpe-fund.com")]
+    ))
 
 
 @dataclass

@@ -168,7 +168,7 @@ class MENANewsBot:
             await update.message.reply_text(
                 f"✅ 周报生成成功!\n\n"
                 f"📅 周期: {report.week_key}\n"
-                f"📧 将发送到: {self.config.email.email_to}"
+                f"📧 将发送到: {", ".join(self.config.email.email_recipients)}"
             )
         else:
             await update.message.reply_text("❌ 周报生成失败，请查看日志。")
@@ -278,7 +278,7 @@ class MENANewsBot:
                 await query.edit_message_text(
                     f"✅ 周报生成成功!\n\n"
                     f"📅 周期: {report.week_key}\n"
-                    f"📧 已发送到: {self.config.email.email_to}"
+                    f"📧 已发送到: {", ".join(self.config.email.email_recipients)}"
                 )
             else:
                 await query.edit_message_text("❌ 周报生成失败")

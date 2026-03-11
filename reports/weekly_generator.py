@@ -83,7 +83,7 @@ class WeeklyReportGenerator:
             selected_news_ids=[s.news_id for s in selections],
             generated_at=datetime.now(timezone.utc),
             status="final",
-            email_to=self.config.email.email_to,
+            email_to=", ".join(self.config.email.email_recipients),
         )
 
         # Save report
@@ -93,7 +93,7 @@ class WeeklyReportGenerator:
 
         # Send email
         if self.email_sender.send_weekly_report(report):
-            self.report_repo.mark_email_sent(week_key, self.config.email.email_to)
+            self.report_repo.mark_email_sent(week_key, ", ".join(self.config.email.email_recipients))
             logger.info("Weekly report sent successfully")
         else:
             logger.error("Failed to send weekly report email")

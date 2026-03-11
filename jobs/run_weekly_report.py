@@ -36,7 +36,7 @@ def main():
         logger.info("Weekly Report Job Complete")
         logger.info(f"Week: {report.week_key}")
         logger.info(f"Sections: 四、五 generated")
-        logger.info(f"Email sent to: {config.email.email_to}")
+        logger.info(f"Email sent to: {', '.join(config.email.email_recipients)}")
         logger.info("=" * 60)
         return 0
     else:

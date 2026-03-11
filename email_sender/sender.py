@@ -40,7 +40,7 @@ class EmailSender:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = f"MENA Weekly Fundraising Report | {report.week_key}"
             msg["From"] = formataddr(("MENA News System", self.config.email.smtp_user))
-            msg["To"] = self.config.email.email_to
+            msg["To"] = ", ".join(self.config.email.email_recipients)
 
             # Create plain text content
             text_content = self._format_text_report(report)
@@ -56,18 +56,18 @@ class EmailSender:
             msg.attach(part2)
 
             # Send via SMTP
-            return self._send_smtp(msg, self.config.email.email_to)
+            return self._send_smtp(msg, self.config.email.email_recipients)
 
         except Exception as e:
             logger.error(f"Error sending weekly report email: {e}")
             return False
 
-    def _send_smtp(self, msg, to_addr: str) -> bool:
+    def _send_smtp(self, msg, to_addrs: list) -> bool:
         """Send message via SMTP.
 
         Args:
             msg: Email message
-            to_addr: Recipient address
+            to_addrs: List of recipient addresses
 
         Returns:
             True if successful
@@ -90,10 +90,10 @@ class EmailSender:
                 server.starttls()
 
             server.login(self.config.email.smtp_user, self.config.email.smtp_password)
-            server.send_message(msg)
+            server.send_message(msg, to_addrs=to_addrs)
             server.quit()
 
-            logger.info(f"Email sent successfully to {to_addr}")
+            logger.info(f"Email sent successfully to {', '.join(to_addrs)}")
             return True
 
         except Exception as e:
