@@ -66,7 +66,7 @@ class FeedRepository:
             query = (
                 self.client.collection(self.collection_name)
                 .where("active", "==", True)
-                .order("priority", direction=firestore.Query.DESCENDING)
+                .order_by("priority", direction=firestore.Query.DESCENDING)
             )
             docs = query.stream()
 

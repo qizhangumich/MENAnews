@@ -160,7 +160,7 @@ class RawNewsRepository:
             docs = (
                 self.client.collection(self.collection_name)
                 .where("fetched_at", ">=", cutoff_time)
-                .order("fetched_at", direction=firestore.Query.DESCENDING)
+                .order_by("fetched_at", direction=firestore.Query.DESCENDING)
                 .limit(limit)
                 .get()
             )

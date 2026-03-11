@@ -146,7 +146,7 @@ class ScoreRepository:
             docs = (
                 self.client.collection(self.collection_name)
                 .where("scored_at", ">=", cutoff_time)
-                .order("scored_at", direction=firestore.Query.DESCENDING)
+                .order_by("scored_at", direction=firestore.Query.DESCENDING)
                 .limit(limit * 2)  # Get more to filter
                 .get()
             )
@@ -190,7 +190,7 @@ class ScoreRepository:
             docs = (
                 self.client.collection(self.collection_name)
                 .where("scored_at", ">=", cutoff_time)
-                .order("scored_at", direction=firestore.Query.DESCENDING)
+                .order_by("scored_at", direction=firestore.Query.DESCENDING)
                 .limit(limit * 2)  # Get more to filter
                 .get()
             )

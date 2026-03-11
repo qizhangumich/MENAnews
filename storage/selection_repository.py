@@ -161,7 +161,7 @@ class SelectionRepository:
             docs = (
                 self.client.collection(self.collection_name)
                 .where("week_key", "==", week_key)
-                .order("selected_at", direction=firestore.Query.DESCENDING)
+                .order_by("selected_at", direction=firestore.Query.DESCENDING)
                 .get()
             )
 
