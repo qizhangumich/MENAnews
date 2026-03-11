@@ -82,6 +82,7 @@ jobs:
       - name: Run news collection
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          GOOGLE_APPLICATION_CREDENTIALS: ./firebase_service_account.json
         run: python app.py collect
 
   score-articles:
@@ -112,6 +113,7 @@ jobs:
       - name: Run scoring engine
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          GOOGLE_APPLICATION_CREDENTIALS: ./firebase_service_account.json
         run: python app.py score
 
   daily-push:
@@ -143,6 +145,7 @@ jobs:
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GOOGLE_APPLICATION_CREDENTIALS: ./firebase_service_account.json
         run: python app.py daily-push
 
   weekly-report:
@@ -180,4 +183,5 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GOOGLE_APPLICATION_CREDENTIALS: ./firebase_service_account.json
         run: python app.py weekly
