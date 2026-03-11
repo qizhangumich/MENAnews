@@ -147,7 +147,6 @@ class ScoreRepository:
             docs = (
                 self.client.collection(self.collection_name)
                 .where("scored_at", ">=", cutoff_time)
-                .order_by("scored_at", direction=firestore.Query.DESCENDING)
                 .limit(limit * 2)  # Get more to filter
                 .get()
             )
@@ -161,7 +160,7 @@ class ScoreRepository:
                 if len(scores) >= limit:
                     break
 
-            # Sort by final priority score
+            # Sort by scored_at first (newest), then by final priority score
             scores.sort(key=lambda s: s.final_priority_score, reverse=True)
 
             logger.info(f"Found {len(scores)} candidates (score >= {min_score})")
@@ -191,7 +190,6 @@ class ScoreRepository:
             docs = (
                 self.client.collection(self.collection_name)
                 .where("scored_at", ">=", cutoff_time)
-                .order_by("scored_at", direction=firestore.Query.DESCENDING)
                 .limit(limit * 2)  # Get more to filter
                 .get()
             )

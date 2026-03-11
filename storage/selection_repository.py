@@ -162,7 +162,6 @@ class SelectionRepository:
             docs = (
                 self.client.collection(self.collection_name)
                 .where("week_key", "==", week_key)
-                .order_by("selected_at", direction=firestore.Query.DESCENDING)
                 .get()
             )
 
@@ -170,6 +169,9 @@ class SelectionRepository:
             for doc in docs:
                 data = doc.to_dict()
                 selections.append(NewsSelection(id=doc.id, **data))
+
+            # Sort by selected_at in Python (descending)
+            selections.sort(key=lambda s: s.selected_at or datetime.min, reverse=True)
 
             logger.info(f"Retrieved {len(selections)} selections for week {week_key}")
             return selections

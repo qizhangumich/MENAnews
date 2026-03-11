@@ -34,7 +34,7 @@ class ScoreWeights:
 @dataclass
 class Thresholds:
     """Score thresholds for filtering."""
-    daily_push_threshold: float = 25.0
+    daily_push_threshold: float = 0.0  # Lowered from 25.0 to get more articles initially
     relevance_min: float = 10.0
     importance_min: float = 15.0
 
