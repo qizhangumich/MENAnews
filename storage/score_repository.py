@@ -170,6 +170,49 @@ class ScoreRepository:
             logger.error(f"Error fetching candidates: {e}")
             return []
 
+    def get_top_scores(self, limit: int = 30, week_key: str = None) -> List[NewsScore]:
+        """Get top scored articles for weekly report.
+
+        Args:
+            limit: Maximum number of articles to return
+            week_key: Optional week key filter
+
+        Returns:
+            List of NewsScore objects sorted by final_priority_score
+        """
+        from datetime import timedelta
+
+        # Get articles from the past 7 days if no week_key specified
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=7)
+
+        try:
+            # Get scores from the past week
+            docs = (
+                self.client.collection(self.collection_name)
+                .where("scored_at", ">=", cutoff_time)
+                .order("scored_at", direction=firestore.Query.DESCENDING)
+                .limit(limit * 2)  # Get more to filter
+                .get()
+            )
+
+            scores = []
+            for doc in docs:
+                data = doc.to_dict()
+                score = NewsScore(id=doc.id, **data)
+                scores.append(score)
+                if len(scores) >= limit * 2:
+                    break
+
+            # Sort by final priority score and take top N
+            scores.sort(key=lambda s: s.final_priority_score or s.total_machine_score or 0, reverse=True)
+
+            logger.info(f"Found {len(scores[:limit])} top scores for weekly report")
+            return scores[:limit]
+
+        except Exception as e:
+            logger.error(f"Error fetching top scores: {e}")
+            return []
+
     def update_selection_score(self, news_id: str, selection_score: int = 100) -> bool:
         """Update selection score for human-selected articles.
 

@@ -3,7 +3,7 @@
 Message formatter for Telegram messages.
 """
 from datetime import datetime, timezone, timedelta
-from telegram import ParseMode
+from telegram.constants import ParseMode
 
 from storage.raw_news_repository import RawNews
 from storage.score_repository import NewsScore

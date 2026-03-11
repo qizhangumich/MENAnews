@@ -9,6 +9,7 @@ from typing import List, Optional
 
 from storage.selection_repository import SelectionRepository, get_week_key
 from storage.raw_news_repository import RawNewsRepository
+from storage.score_repository import ScoreRepository
 from storage.report_repository import WeeklyReport, ReportRepository
 from email_sender.sender import EmailSender
 from config import Config
@@ -28,6 +29,7 @@ class WeeklyReportGenerator:
         self.config = config or Config()
         self.selection_repo = SelectionRepository(config=self.config)
         self.news_repo = RawNewsRepository(config=self.config)
+        self.score_repo = ScoreRepository(config=self.config)
         self.report_repo = ReportRepository(config=self.config)
         self.email_sender = EmailSender(config=self.config)
 
@@ -50,7 +52,16 @@ class WeeklyReportGenerator:
 
         if not selections:
             logger.warning(f"No selections found for week {week_key}")
-            return None
+            # Fallback: use top 30 scored articles for the week
+            logger.info("Using top 30 scored articles as fallback")
+            scores = self.score_repo.get_top_scores(limit=30, week_key=week_key)
+            if scores:
+                # Get news details for scored articles
+                selections = self._create_selections_from_scores(scores, week_key)
+                logger.info(f"Created {len(selections)} fallback selections from top scores")
+            else:
+                logger.error("No scored articles found for fallback")
+                return None
 
         logger.info(f"Found {len(selections)} selections")
 
@@ -319,3 +330,38 @@ class WeeklyReportGenerator:
         except Exception as e:
             logger.error(f"Error generating reflection with LLM: {e}")
             return None
+
+    def _create_selections_from_scores(self, scores: List, week_key: str) -> List:
+        """Create selection objects from score objects (for fallback).
+
+        Args:
+            scores: List of NewsScore objects
+            week_key: Week key
+
+        Returns:
+            List of NewsSelection objects
+        """
+        from storage.selection_repository import NewsSelection
+
+        selections = []
+        for score in scores:
+            # Determine section based on score
+            # Top 10 go to section 4, next 10 go to section 5, rest go to both
+            idx = scores.index(score)
+            if idx < 10:
+                sections = ["4"]
+            elif idx < 20:
+                sections = ["5"]
+            else:
+                sections = ["4", "5"]
+
+            selection = NewsSelection(
+                news_id=score.news_id,
+                week_key=week_key,
+                selected_sections=sections,
+                starred=False,
+                selected_at=datetime.now(timezone.utc),
+            )
+            selections.append(selection)
+
+        return selections
