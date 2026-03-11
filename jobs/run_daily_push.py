@@ -41,11 +41,18 @@ def main():
     limit = config.telegram.daily_push_limit
 
     logger.info(f"Fetching candidates (score >= {threshold}, limit {limit})...")
+    logger.info(f"Bot token configured: {bool(config.telegram.bot_token)}")
+    logger.info(f"Chat ID configured: {config.telegram.chat_id}")
+
     scores = score_repo.get_recent_candidates(
         hours_back=24,
         min_score=threshold,
         limit=limit * 2  # Get more to filter
     )
+
+    logger.info(f"get_recent_candidates returned {len(scores)} scores")
+    if scores:
+        logger.info(f"Sample scores: {[f'{s.final_priority_score or s.total_machine_score:.1f}' for s in scores[:5]]")
 
     if not scores:
         logger.warning("No candidates found")
@@ -56,6 +63,7 @@ def main():
     # Get already pushed IDs
     pushed_ids = push_log_repo.get_pushed_news_ids()
     logger.info(f"Already pushed: {len(pushed_ids)} articles")
+    logger.info(f"Sample pushed IDs: {list(pushed_ids)[:5] if pushed_ids else 'None'}")
 
     # Filter and collect articles
     articles_to_push = []
@@ -79,23 +87,36 @@ def main():
             break
 
     if not articles_to_push:
-        logger.info("No new articles to push")
+        logger.info("No new articles to push (all were already pushed)")
         return 0
 
     logger.info(f"Pushing {len(articles_to_push)} articles to Telegram...")
+    logger.info(f"Target chat_id: {push_service.chat_id}")
 
     # Send to Telegram
     batch_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M")
-    stats = push_service.send_daily_digest_sync(
-        articles=articles_to_push,
-        scores=scores_to_push,
-        batch_id=batch_id,
-    )
+    logger.info(f"Batch ID: {batch_id}")
+    logger.info(f"Articles: {[f'{a.title[:50]}...' for a in articles_to_push[:3]]}")
 
-    logger.info("=" * 60)
-    logger.info("Daily Push Job Complete")
-    logger.info(f"Sent: {stats['sent']}, Failed: {stats['failed']}, Skipped: {stats['skipped']}")
-    logger.info("=" * 60)
+    try:
+        stats = push_service.send_daily_digest_sync(
+            articles=articles_to_push,
+            scores=scores_to_push,
+            batch_id=batch_id,
+        )
+
+        logger.info("=" * 60)
+        logger.info("Daily Push Job Complete")
+        logger.info(f"Sent: {stats['sent']}, Failed: {stats['failed']}, Skipped: {stats['skipped']}")
+        logger.info("=" * 60)
+
+    except Exception as e:
+        logger.error(f"Error sending to Telegram: {e}")
+        logger.error(f"Bot token length: {len(push_service.bot_token)}")
+        logger.error(f"Chat ID: {push_service.chat_id}")
+        return 1
+
+    return 0
 
     return 0
 
