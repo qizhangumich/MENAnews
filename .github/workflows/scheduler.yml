@@ -32,12 +32,12 @@ jobs:
             echo "run-collection=true" >> $GITHUB_OUTPUT
           fi
 
-          # Daily digest: 00:00 UTC every day (08:00 Beijing)
+          # Daily digest: 00:00 UTC every day (08:00 Beijing GMT+8)
           if [ "$HOUR" = "00" ] && [ "$MINUTE" = "00" ]; then
             echo "run-daily=true" >> $GITHUB_OUTPUT
           fi
 
-          # Weekly digest: Friday 00:00 UTC (08:00 Beijing)
+          # Weekly digest: Friday 00:00 UTC (08:00 Beijing GMT+8)
           if [ "$DAY" = "5" ] && [ "$HOUR" = "00" ] && [ "$MINUTE" = "00" ]; then
             echo "run-weekly=true" >> $GITHUB_OUTPUT
           fi
@@ -114,23 +114,22 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase_service_account.json
-          export GOOGLE_APPLICATION_CREDENTIALS=firebase_service_account.json
 
-      - name: Run daily digest (Telegram)
+      - name: Run daily Telegram push
         env:
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          FIRESTORE_COLLECTION: ${{ secrets.FIRESTORE_COLLECTION }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          python -m src.main daily
+          python jobs/run_daily_push.py
 
       - name: Upload log as artifact (if failed)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: daily-digest-log
-          path: ranking_service.log
+          name: daily-push-log
+          path: |
+            *.log
 
   weekly-digest:
     needs: setup
@@ -158,26 +157,24 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase_service_account.json
-          export GOOGLE_APPLICATION_CREDENTIALS=firebase_service_account.json
 
-      - name: Run weekly digest (Email with bilingual summaries)
+      - name: Run weekly report (Email with Chinese summaries)
         env:
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          FIRESTORE_COLLECTION: ${{ secrets.FIRESTORE_COLLECTION }}
           # SMTP Configuration
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
-          # OpenAI for bilingual summaries
+          # OpenAI for Chinese summaries
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          python -m src.main weekly
+          python jobs/run_weekly_report.py
 
       - name: Upload log as artifact (if failed)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: weekly-digest-log
-          path: ranking_service.log
+          name: weekly-report-log
+          path: |
+            *.log
