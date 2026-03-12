@@ -25,8 +25,8 @@ load_env()
 @dataclass
 class ScoreWeights:
     """Scoring weights that can be adjusted."""
-    relevance_weight: float = 0.65
-    importance_weight: float = 0.35
+    relevance_weight: float = 0.90   # 90% - Relevance is the most important factor
+    importance_weight: float = 0.10  # 10% - Reduced from 35%
     selection_score_default: int = 0
     selection_score_selected: int = 100
 

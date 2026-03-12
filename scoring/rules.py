@@ -37,17 +37,26 @@ class ScoringRules:
 
         if self.RELEVANCE_KEYWORDS is None:
             self.RELEVANCE_KEYWORDS = {
-                "family office": 30,
+                # Highest priority - Sovereign Wealth Fund related
+                "sovereign wealth": 45, "sovereign wealth fund": 45,
+                # SWF entities (handled separately with +45 in engine)
+                # Core investment activities - HIGHEST
+                "investment": 35, "invest": 35, "financing": 30,
+                "buyout": 30, "takeover": 30,
+                # Family offices (lower priority)
+                "family office": 15,
+                # Fund/PE/VC
                 "fund": 20, "fundraising": 20, "lp": 20, "gp": 20,
                 "private equity": 20, "pe": 20, "venture capital": 20, "vc": 20,
                 "asset management": 20, "asset manager": 20,
-                "ipo": 15, "initial public offering": 15, "listing": 15,
-                "acquisition": 15, "merger": 15, "m&a": 15, "m and a": 15,
-                "stake": 15, "buyout": 15, "takeover": 15,
+                # Deals
+                "ipo": 18, "initial public offering": 18, "listing": 18,
+                "acquisition": 18, "merger": 18, "m&a": 18, "m and a": 18,
+                "stake": 18,
                 "series a": 15, "series b": 15, "series c": 15,
                 "funding round": 15, "investment round": 15,
                 "strategic investment": 15,
-                "investment": 10, "invest": 10, "financing": 10, "finance": 10,
+                # Lower priority
                 "bank": 5, "bond": 5, "sukuk": 5, "central bank": 5,
             }
 

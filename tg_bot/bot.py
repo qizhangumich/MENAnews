@@ -181,7 +181,31 @@ class MENANewsBot:
             context: Context object
         """
         query = update.callback_query
-        await query.answer()
+
+        # Parse callback first to determine action
+        if callback_data.startswith("sel|"):
+            parsed = self.parser.parse_selection_callback(callback_data)
+            if parsed:
+                # Show immediate feedback
+                action = parsed["action"]
+                if action == "x":
+                    await query.answer("已忽略")
+                elif action == "4":
+                    await query.answer("已选四")
+                elif action == "4s":
+                    await query.answer("已选四并标星")
+                elif action == "5":
+                    await query.answer("已选五")
+                elif action == "5s":
+                    await query.answer("已选五并标星")
+                elif action == "45":
+                    await query.answer("已同时选入四和五")
+                else:
+                    await query.answer()
+            else:
+                await query.answer()
+        else:
+            await query.answer()
 
         callback_data = query.data
         if not callback_data:
@@ -247,9 +271,9 @@ class MENANewsBot:
             starred=starred,
         )
 
-        # Remove keyboard and show confirmation
+        # Remove keyboard and show confirmation (more visible)
         await query.edit_message_text(
-            text=f"{query.message.text}\n\n{confirmation}",
+            text=f"{confirmation}\n\n_{article.title[:50]}..._",
             parse_mode="Markdown",
         )
 
