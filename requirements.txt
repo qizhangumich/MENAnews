@@ -3,9 +3,7 @@
 # NOTE: Using feedparser 5.2.1 (stable 5.x series without email module issues)
 
 # RSS feed parsing
-# NOTE: Using 5.2.1 with setuptools<58 for use_2to3 compatibility
-feedparser==5.2.1
-setuptools<58
+feedparser==6.0.10
 
 # Google Cloud Firestore
 google-cloud-firestore>=2.16.0

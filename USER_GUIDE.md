@@ -275,9 +275,122 @@ src/
 
 ### Adding New Features
 
-1. **New scoring keywords:** Edit `src/scoring.py` → `RELEVANCE_KEYWORDS` or `EVENT_KEYWORDS`
-2. **Change article count:** Edit `src/config.py` → `daily_top_n` or modify `weekly_digest.py` → `[:60]`
-3. **Add new sources:** Edit `rss_sources.json` (for collector) or `scoring.py` → `SOURCE_WEIGHTS`
+#### 1. Adding News Feed Sources
+
+Edit [`rss_sources.json`](rss_sources.json) to add, remove, or modify RSS feed sources:
+
+```json
+{
+  "sources": [
+    {
+      "name": "Reuters Business",
+      "url": "https://www.reuters.com/business/rss"
+    },
+    {
+      "name": "Bloomberg Markets",
+      "url": "https://feeds.bloomberg.com/markets/news.rss"
+    }
+  ]
+}
+```
+
+**Current sources include:** Reuters (Middle East, Business, Energy, Markets), Bloomberg Markets, Arabian Business, Gulf Business, The National, Arab News, CNBC, Khaleej Times, MEED, OilPrice, Argus Media, S&P Global, BBC Middle East, OPEC, Aramco, Masdar, ADGM, WAM UAE, Qatar News Agency.
+
+---
+
+#### 2. Setting Score Weights
+
+There are **three levels** of weight configuration:
+
+##### a) Overall Score Weights (Relevance vs Importance)
+
+Edit [`config.py:26-32`](config.py#L26-L32) to adjust the balance between relevance and importance:
+
+```python
+@dataclass
+class ScoreWeights:
+    relevance_weight: float = 0.65   # 65% weight for relevance score
+    importance_weight: float = 0.35  # 35% weight for importance score
+```
+
+##### b) Relevance Keyword Weights
+
+Edit [`scoring/rules.py:38-52`](scoring/rules.py#L38-L52) to adjust how much each keyword contributes to relevance:
+
+```python
+RELEVANCE_KEYWORDS = {
+    "family office": 30,        # High priority
+    "fund": 20, "fundraising": 20,
+    "private equity": 20, "pe": 20,
+    "venture capital": 20, "vc": 20,
+    "ipo": 15, "initial public offering": 15,
+    "acquisition": 15, "merger": 15, "m&a": 15,
+    "investment": 10, "invest": 10,
+    "bank": 5, "bond": 5, "sukuk": 5,
+}
+```
+
+##### c) Importance Weights (Source & Event)
+
+Edit [`scoring/rules.py:54-77`](scoring/rules.py#L54-L77) to adjust source credibility and event impact:
+
+```python
+# Event weights
+EVENT_KEYWORDS = {
+    "ipo": 35,
+    "acquisition": 35, "merger": 35,
+    "funding round": 30,
+    "regulation": 25, "sanction": 25,
+    "earnings": 18,
+    "partnership": 12,
+}
+
+# Source credibility weights
+SOURCE_WEIGHTS = {
+    "reuters": 40,
+    "financial times": 38, "ft.com": 38,
+    "wall street journal": 38, "wsj": 38,
+    "bloomberg": 38,
+    "the national": 30,
+    "arabian business": 22,
+}
+```
+
+---
+
+#### 3. Filtering for Economy/Investment News Only
+
+To reduce daily news volume and focus only on economy/investment related content:
+
+**Option A: Raise the daily push threshold**
+
+Edit [`config.py:37`](config.py#L37):
+```python
+daily_push_threshold: float = 30.0  # Only send articles with total score >= 30
+```
+
+**Option B: Set a minimum relevance score**
+
+Edit [`config.py:38`](config.py#L38):
+```python
+relevance_min: float = 20.0  # Require minimum relevance score (economy/investment related)
+```
+
+**Option C: Increase economy/investment keyword weights**
+
+In [`scoring/rules.py`](scoring/rules.py), increase weights for economy-related keywords:
+```python
+"investment": 30,  # Increased from 10
+"economy": 25,     # Add new keyword
+"financial": 20,   # Add new keyword
+```
+
+---
+
+#### 4. Other Customizations
+
+- **Change article count:** Edit `config.py:47` → `daily_push_limit: int = 20`
+- **Add new SWF entities:** Edit [`scoring/rules.py:31-36`](scoring/rules.py#L31-L36) → `SWF_ENTITIES`
 
 ---
 
