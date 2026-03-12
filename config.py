@@ -74,6 +74,7 @@ class LLMConfig:
     """LLM configuration for weekly report generation."""
     api_key: str = field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
     model: str = "gpt-4o-mini"
+    daily_model: str = "gpt-4o-mini"  # Cheap model for daily push translation
 
 
 @dataclass

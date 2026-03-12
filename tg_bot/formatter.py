@@ -25,6 +25,7 @@ class TelegramFormatter:
         article: RawNews,
         score: NewsScore,
         index: int = None,
+        chinese_translation: str = None,
     ) -> str:
         """Format an article for Telegram daily review.
 
@@ -32,6 +33,7 @@ class TelegramFormatter:
             article: RawNews object
             score: NewsScore object
             index: Optional article number
+            chinese_translation: Optional Chinese translation
 
         Returns:
             Formatted message string
@@ -39,19 +41,14 @@ class TelegramFormatter:
         # Article number
         prefix = f"{index}. " if index else ""
 
-        # Title
-        title = article.title or "无标题"
-
-        # Description/Snippet
-        snippet = self._format_snippet(article.snippet_text or article.description)
+        # Use Chinese translation if available, otherwise use English title
+        title = chinese_translation or article.title or "无标题"
 
         # URL
         url = article.url or "无链接"
 
-        # Simple format: number + title + description + link
+        # Simple format: number + chinese title + link
         message = f"""*{prefix}{title}*
-
-{snippet}
 
 🔗 {url}"""
 

@@ -10,6 +10,7 @@ from telegram import Bot
 from telegram.error import TelegramError
 
 from tg_bot.formatter import TelegramFormatter
+from tg_bot.translator import DailyTranslator
 from storage.raw_news_repository import RawNewsRepository
 from storage.score_repository import NewsScore
 from storage.push_log_repository import TelegramPushLog, PushLogRepository
@@ -34,6 +35,7 @@ class PushService:
         self.bot_token = bot_token or self.config.telegram.bot_token
         self.chat_id = chat_id or self.config.telegram.chat_id
         self.formatter = TelegramFormatter()
+        self.translator = DailyTranslator(config=self.config)
 
         self.bot = Bot(token=self.bot_token)
         self.push_log_repo = PushLogRepository(config=self.config)
@@ -80,8 +82,11 @@ class PushService:
                     stats["skipped"] += 1
                     continue
 
-                # Format message
-                message = self.formatter.format_article_message(article, score, index=i)
+                # Translate to Chinese (using cheap model)
+                chinese = self.translator.translate_title_only(article.title or "")
+
+                # Format message with Chinese translation
+                message = self.formatter.format_article_message(article, score, index=i, chinese_translation=chinese)
 
                 # Send message (no keyboard - just show the news)
                 msg = await self.bot.send_message(
