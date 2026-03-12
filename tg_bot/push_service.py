@@ -9,7 +9,6 @@ from typing import List, Optional
 from telegram import Bot
 from telegram.error import TelegramError
 
-from tg_bot.keyboards import SelectionKeyboards
 from tg_bot.formatter import TelegramFormatter
 from storage.raw_news_repository import RawNewsRepository
 from storage.score_repository import NewsScore
@@ -84,15 +83,11 @@ class PushService:
                 # Format message
                 message = self.formatter.format_article_message(article, score, index=i)
 
-                # Create keyboard
-                keyboard = SelectionKeyboards.get_selection_keyboard(article.id)
-
-                # Send message
+                # Send message (no keyboard - just show the news)
                 msg = await self.bot.send_message(
                     chat_id=self.chat_id,
                     text=message,
                     parse_mode="Markdown",
-                    reply_markup=keyboard,
                 )
 
                 # Log push
@@ -146,23 +141,19 @@ class PushService:
 
         return asyncio.run(self.send_daily_digest(articles, scores, batch_id))
 
-    async def send_message(self, text: str, keyboard: Optional[SelectionKeyboards] = None) -> bool:
+    async def send_message(self, text: str) -> bool:
         """Send a simple message to Telegram.
 
         Args:
             text: Message text
-            keyboard: Optional inline keyboard
 
         Returns:
             True if successful
         """
         try:
-            reply_markup = keyboard.get_selection_keyboard("dummy") if keyboard else None
-
             await self.bot.send_message(
                 chat_id=self.chat_id,
                 text=text,
-                reply_markup=reply_markup,
             )
             return True
 
@@ -170,16 +161,15 @@ class PushService:
             logger.error(f"Error sending message: {e}")
             return False
 
-    def send_message_sync(self, text: str, keyboard: Optional[SelectionKeyboards] = None) -> bool:
+    def send_message_sync(self, text: str) -> bool:
         """Send a simple message synchronously.
 
         Args:
             text: Message text
-            keyboard: Optional inline keyboard
 
         Returns:
             True if successful
         """
         import asyncio
 
-        return asyncio.run(self.send_message(text, keyboard))
+        return asyncio.run(self.send_message(text))

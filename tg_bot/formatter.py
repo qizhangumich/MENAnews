@@ -42,33 +42,14 @@ class TelegramFormatter:
         # Title
         title = article.title or "无标题"
 
-        # Source and date
-        source = article.source or "未知来源"
-        date_str = self._format_date(article.published_at or article.fetched_at)
-
-        # Scores
-        relevance = f"{score.relevance_score:.0f}" if score.relevance_score else "0"
-        importance = f"{score.importance_score:.0f}" if score.importance_score else "0"
-        total = f"{score.total_machine_score:.0f}" if score.total_machine_score else "0"
-
-        # Tags
-        tags = self._format_tags(score)
-
-        # Suggested section
-        section_hint = self._format_section_hint(score.section_suggested)
-
-        # Snippet
+        # Description/Snippet
         snippet = self._format_snippet(article.snippet_text or article.description)
 
         # URL
         url = article.url or "无链接"
 
+        # Simple format: number + title + description + link
         message = f"""*{prefix}{title}*
-
-📰 {source} | 🕒 {date_str}
-📊 相关性: {relevance} | 重要性: {importance} | 总分: {total}
-{tags}
-{section_hint}
 
 {snippet}
 

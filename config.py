@@ -37,6 +37,7 @@ class Thresholds:
     daily_push_threshold: float = 0.0  # Lowered from 25.0 to get more articles initially
     relevance_min: float = 10.0
     importance_min: float = 15.0
+    weekly_relevance_min: float = 20.0  # Minimum relevance for weekly report fallback
 
 
 @dataclass

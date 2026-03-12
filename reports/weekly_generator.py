@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
 Weekly report generator for sections 四, 五, 九.
-Generates Chinese reports from selected articles.
+Generates Chinese reports from top scored articles.
 """
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from storage.selection_repository import SelectionRepository, get_week_key
+from storage.selection_repository import get_week_key, NewsSelection
 from storage.raw_news_repository import RawNewsRepository
 from storage.score_repository import ScoreRepository
 from storage.report_repository import WeeklyReport, ReportRepository
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class WeeklyReportGenerator:
-    """Generate weekly reports from selected articles."""
+    """Generate weekly reports from top scored articles."""
 
     def __init__(self, config: Config = None):
         """Initialize generator.
@@ -27,7 +27,6 @@ class WeeklyReportGenerator:
             config: Configuration object
         """
         self.config = config or Config()
-        self.selection_repo = SelectionRepository(config=self.config)
         self.news_repo = RawNewsRepository(config=self.config)
         self.score_repo = ScoreRepository(config=self.config)
         self.report_repo = ReportRepository(config=self.config)
@@ -47,23 +46,17 @@ class WeeklyReportGenerator:
 
         logger.info(f"Generating weekly report for {week_key}")
 
-        # Get selections for the week
-        selections = self.selection_repo.get_week_selections(week_key)
+        # Get top scored articles for the week with relevance filter
+        min_relevance = self.config.thresholds.weekly_relevance_min
+        scores = self.score_repo.get_top_scores(limit=30, week_key=week_key, min_relevance=min_relevance)
 
-        if not selections:
-            logger.warning(f"No selections found for week {week_key}")
-            # Fallback: use top 30 scored articles for the week
-            logger.info("Using top 30 scored articles as fallback")
-            scores = self.score_repo.get_top_scores(limit=30, week_key=week_key)
-            if scores:
-                # Get news details for scored articles
-                selections = self._create_selections_from_scores(scores, week_key)
-                logger.info(f"Created {len(selections)} fallback selections from top scores")
-            else:
-                logger.error("No scored articles found for fallback")
-                return None
+        if not scores:
+            logger.error(f"No scored articles found for week {week_key} (min_relevance={min_relevance})")
+            return None
 
-        logger.info(f"Found {len(selections)} selections")
+        # Create selections from top scores
+        selections = self._create_selections_from_scores(scores, week_key)
+        logger.info(f"Using {len(selections)} top scored articles for weekly report")
 
         # Group by section
         section_4_selections = [s for s in selections if "4" in s.selected_sections]
@@ -332,7 +325,7 @@ class WeeklyReportGenerator:
             return None
 
     def _create_selections_from_scores(self, scores: List, week_key: str) -> List:
-        """Create selection objects from score objects (for fallback).
+        """Create selection objects from score objects.
 
         Args:
             scores: List of NewsScore objects
@@ -341,19 +334,24 @@ class WeeklyReportGenerator:
         Returns:
             List of NewsSelection objects
         """
-        from storage.selection_repository import NewsSelection
-
         selections = []
         for score in scores:
-            # Determine section based on score
-            # Top 10 go to section 4, next 10 go to section 5, rest go to both
-            idx = scores.index(score)
-            if idx < 10:
-                sections = ["4"]
-            elif idx < 20:
-                sections = ["5"]
+            # Use section_suggested from scoring engine, or assign based on content
+            if score.section_suggested and len(score.section_suggested) > 0:
+                sections = score.section_suggested
             else:
-                sections = ["4", "5"]
+                # Fallback: determine from article content
+                article = self.news_repo.get_by_id(score.news_id)
+                if article:
+                    text = (article.title + " " + (article.description or "")).lower()
+                    # Check for section 5 keywords (SWF/investor focus)
+                    if any(kw in text for kw in ["pif", "mubadala", "adia", "qia", "kia", "adq", "oia", "sovereign wealth"]):
+                        sections = ["5"]
+                    else:
+                        # Default to section 4 (market dynamics)
+                        sections = ["4"]
+                else:
+                    sections = ["4"]
 
             selection = NewsSelection(
                 news_id=score.news_id,

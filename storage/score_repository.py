@@ -170,12 +170,13 @@ class ScoreRepository:
             logger.error(f"Error fetching candidates: {e}")
             return []
 
-    def get_top_scores(self, limit: int = 30, week_key: str = None) -> List[NewsScore]:
+    def get_top_scores(self, limit: int = 30, week_key: str = None, min_relevance: float = 20.0) -> List[NewsScore]:
         """Get top scored articles for weekly report.
 
         Args:
             limit: Maximum number of articles to return
             week_key: Optional week key filter
+            min_relevance: Minimum relevance score threshold (default 20.0)
 
         Returns:
             List of NewsScore objects sorted by final_priority_score
@@ -190,7 +191,7 @@ class ScoreRepository:
             docs = (
                 self.client.collection(self.collection_name)
                 .where("scored_at", ">=", cutoff_time)
-                .limit(limit * 2)  # Get more to filter
+                .limit(limit * 3)  # Get more to filter by relevance
                 .get()
             )
 
@@ -198,14 +199,16 @@ class ScoreRepository:
             for doc in docs:
                 data = doc.to_dict()
                 score = NewsScore(id=doc.id, **data)
-                scores.append(score)
+                # Filter by minimum relevance score
+                if score.relevance_score and score.relevance_score >= min_relevance:
+                    scores.append(score)
                 if len(scores) >= limit * 2:
                     break
 
             # Sort by final priority score and take top N
             scores.sort(key=lambda s: s.final_priority_score or s.total_machine_score or 0, reverse=True)
 
-            logger.info(f"Found {len(scores[:limit])} top scores for weekly report")
+            logger.info(f"Found {len(scores[:limit])} top scores (min_relevance={min_relevance}) for weekly report")
             return scores[:limit]
 
         except Exception as e:
