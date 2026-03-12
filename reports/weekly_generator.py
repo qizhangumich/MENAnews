@@ -3,6 +3,7 @@
 Weekly report generator for sections 四, 五, 九.
 Generates Chinese reports from top scored articles.
 """
+import json
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -125,14 +126,13 @@ class WeeklyReportGenerator:
             if not article:
                 continue
 
-            title = article.title
-            source = article.source
-            url = article.url
+            # Get Chinese translation and analysis
+            translated = self._translate_and_analyze_article(article, focus="募资")
 
             star = "⭐ " if selection.starred else ""
-            item = f"{star}• {title}\n  来源: {source}\n"
+            item = f"{star}• {translated['content']}\n"
 
-            text = (title + " " + (article.description or "")).lower()
+            text = (article.title + " " + (article.description or "")).lower()
 
             if any(kw in text for kw in ["ipo", "listing", "initial public offering"]):
                 ipo_deals.append(item)
@@ -218,10 +218,12 @@ class WeeklyReportGenerator:
             if investor not in by_investor:
                 by_investor[investor] = []
 
+            # Get Chinese translation and analysis
+            translated = self._translate_and_analyze_article(article, focus="投资")
+
             star = "⭐ " if selection.starred else ""
             by_investor[investor].append({
-                "title": article.title,
-                "source": article.source,
+                "content": translated['content'],
                 "star": star,
             })
 
@@ -231,8 +233,7 @@ class WeeklyReportGenerator:
         for investor, items in list(by_investor.items())[:5]:
             content += f"{section_num}. {investor}\n\n"
             for item in items[:3]:
-                content += f"{item['star']}• {item['title']}\n"
-                content += f"  来源: {item['source']}\n"
+                content += f"{item['star']}• {item['content']}\n"
             content += "\n"
             section_num += 1
 
@@ -261,6 +262,77 @@ class WeeklyReportGenerator:
             content += "本周暂无反思内容。"
 
         return content
+
+    def _translate_and_analyze_article(self, article, focus: str = "募资") -> dict:
+        """Translate article to Chinese and generate impact analysis.
+
+        Args:
+            article: RawNews object
+            focus: Focus area ("募资" or "投资")
+
+        Returns:
+            Dictionary with translated title and analysis
+        """
+        try:
+            import openai
+
+            title = article.title or "无标题"
+            description = article.snippet_text or article.description or ""
+
+            prompt = f"""请将以下新闻翻译成详细的中文摘要（200-300字），包括标题和分析。
+
+新闻标题: {title}
+新闻内容: {description[:1000]}
+
+请按以下格式输出（JSON格式）:
+{{
+    "content": "完整的中文摘要（200-300字），包含：1）新闻要点（公司、金额、交易类型等）；2）对中东经济和募资市场的影响分析"
+}}
+
+要求:
+- 总长度必须达到200-300字
+- 第一部分：详细翻译新闻关键信息（公司名称、交易金额、交易类型、市场背景等）
+- 第二部分：分析此新闻对中东主权财富基金、募资市场的具体影响（LP配置变化、投资机会、市场趋势等）
+- 内容要丰富具体，不要笼统概括
+- 直接输出JSON，不要有其他内容
+
+示例格式:
+"黑石集团与EQT计划以334亿美元收购全球电力公司AES，这是今年以来最大的基础设施收购案之一，显示出全球顶级资本正在加速布局能源转型基础设施。此交易反映出基础设施与能源转型已成为全球资本重要配置领域，中东LP可重点关注相关 mega-fund 的配置机会，同时ESG 基础设施投资正成为新的投资主题。"
+"""
+
+            response = openai.OpenAI(api_key=self.config.llm.api_key).chat.completions.create(
+                model=self.config.llm.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "你是一位专业的中东经济和募资市场分析师，擅长将英文新闻翻译成详细的中文并分析其对中东募资的影响。"
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=600,
+            )
+
+            result_text = response.choices[0].message.content.strip()
+
+            # Parse JSON response
+            import json
+            try:
+                result = json.loads(result_text)
+                return {
+                    "content": result.get("content", f"{title}\n\n相关市场动态")
+                }
+            except json.JSONDecodeError:
+                # Fallback: return original title and simple analysis
+                return {
+                    "content": f"{title}\n\n相关市场动态"
+                }
+
+        except Exception as e:
+            logger.error(f"Error translating article: {e}")
+            return {
+                "content": article.title or "无标题"
+            }
 
     def _generate_reflection_with_llm(self, selections: List, week_key: str) -> Optional[str]:
         """Generate section 9 using LLM.
