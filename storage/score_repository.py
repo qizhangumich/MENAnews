@@ -143,11 +143,13 @@ class ScoreRepository:
         cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_back)
 
         try:
-            # Get recent scores and filter in memory
+            # Get recent scores without limit (filter in memory)
+            # Use a large limit to ensure we get all recent articles
             docs = (
                 self.client.collection(self.collection_name)
                 .where("scored_at", ">=", cutoff_time)
-                .limit(limit * 2)  # Get more to filter
+                .order_by("scored_at", direction="DESCENDING")
+                .limit(limit * 5)  # Increased limit to get more candidates
                 .get()
             )
 
@@ -160,8 +162,8 @@ class ScoreRepository:
                 if len(scores) >= limit:
                     break
 
-            # Sort by scored_at first (newest), then by final priority score
-            scores.sort(key=lambda s: s.final_priority_score, reverse=True)
+            # Sort by final priority score (highest first)
+            scores.sort(key=lambda s: s.final_priority_score or s.total_machine_score, reverse=True)
 
             logger.info(f"Found {len(scores)} candidates (score >= {min_score})")
             return scores

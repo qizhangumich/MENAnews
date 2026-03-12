@@ -37,6 +37,7 @@ class PushService:
         self.formatter = TelegramFormatter()
         self.translator = DailyTranslator(config=self.config)
 
+        # Create bot with default settings
         self.bot = Bot(token=self.bot_token)
         self.push_log_repo = PushLogRepository(config=self.config)
 
@@ -64,10 +65,9 @@ class PushService:
         }
 
         week_key = get_week_key()
-
-        # Create lookup for scores
         score_map = {s.news_id: s for s in scores}
 
+        # Send articles (no translation for now - just English titles)
         for i, article in enumerate(articles, 1):
             try:
                 # Check if already pushed
@@ -82,17 +82,13 @@ class PushService:
                     stats["skipped"] += 1
                     continue
 
-                # Translate to Chinese (using cheap model)
-                chinese = self.translator.translate_title_only(article.title or "")
+                # Format message with English title (no translation)
+                message = self.formatter.format_article_message(article, score, index=i, chinese_translation=None)
 
-                # Format message with Chinese translation
-                message = self.formatter.format_article_message(article, score, index=i, chinese_translation=chinese)
-
-                # Send message (no keyboard - just show the news)
+                # Send message (no markdown parsing to avoid issues)
                 msg = await self.bot.send_message(
                     chat_id=self.chat_id,
                     text=message,
-                    parse_mode="Markdown",
                 )
 
                 # Log push
@@ -108,9 +104,7 @@ class PushService:
                 stats["sent"] += 1
                 logger.info(f"Sent article {i}: {article.title[:50]}")
 
-                # Small delay between messages
-                import asyncio
-                await asyncio.sleep(0.5)
+                # No delay needed - rate limiting handled by API
 
             except TelegramError as e:
                 logger.error(f"Telegram error sending article {article.id}: {e}")

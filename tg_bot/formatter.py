@@ -47,10 +47,8 @@ class TelegramFormatter:
         # URL
         url = article.url or "无链接"
 
-        # Simple format: number + chinese title + link
-        message = f"""*{prefix}{title}*
-
-🔗 {url}"""
+        # Simple format: number + chinese title + link (no markdown)
+        message = f"{prefix}{title}\n\n🔗 {url}"
 
         return message
 
