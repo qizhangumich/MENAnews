@@ -2,8 +2,6 @@ name: MENA News Scheduler
 
 on:
   schedule:
-    # News collection - every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
-    - cron: '0 */6 * * *'
     # Daily digest - at 00:00 UTC (08:00 GMT+8 Beijing)
     - cron: '0 0 * * *'
     # Weekly digest - Friday at 00:00 UTC (08:00 GMT+8 Beijing)
@@ -15,7 +13,6 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      run-collection: ${{ steps.check.outputs.run-collection }}
       run-daily: ${{ steps.check.outputs.run-daily }}
       run-weekly: ${{ steps.check.outputs.run-weekly }}
     steps:
@@ -26,11 +23,6 @@ jobs:
           DAY=$(date +%u)  # 1=Monday, 5=Friday
           HOUR=$(date +%H)
           MINUTE=$(date +%M)
-
-          # Collection: every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
-          if [ "$HOUR" = "00" ] || [ "$HOUR" = "06" ] || [ "$HOUR" = "12" ] || [ "$HOUR" = "18" ]; then
-            echo "run-collection=true" >> $GITHUB_OUTPUT
-          fi
 
           # Daily digest: 00:00 UTC every day (08:00 Beijing GMT+8)
           if [ "$HOUR" = "00" ] && [ "$MINUTE" = "00" ]; then
@@ -44,50 +36,9 @@ jobs:
 
           # For manual dispatch, run all
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "run-collection=true" >> $GITHUB_OUTPUT
             echo "run-daily=true" >> $GITHUB_OUTPUT
             echo "run-weekly=true" >> $GITHUB_OUTPUT
           fi
-
-  collect-news:
-    needs: setup
-    if: needs.setup.outputs.run-collection == 'true'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Setup Firebase credentials
-        env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase_service_account.json
-
-      - name: Run news collector
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          python collector.py
-
-      - name: Upload log as artifact (if failed)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: collector-log
-          path: collector.log
 
   daily-digest:
     needs: setup
